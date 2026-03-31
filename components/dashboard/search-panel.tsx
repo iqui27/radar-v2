@@ -308,10 +308,10 @@ export function SearchPanel({
                 type="button"
                 onClick={() => setMetricsView('individual')}
                 aria-pressed={metricsView === 'individual'}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                className={`rounded-lg px-3.5 py-2 text-xs font-medium transition-[background-color,color,box-shadow] ${
                   metricsView === 'individual'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)] dark:shadow-sm'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground'
                 }`}
               >
                 Individual
@@ -320,10 +320,10 @@ export function SearchPanel({
                 type="button"
                 onClick={() => setMetricsView('aggregate')}
                 aria-pressed={metricsView === 'aggregate'}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                className={`rounded-lg px-3.5 py-2 text-xs font-medium transition-[background-color,color,box-shadow] ${
                   metricsView === 'aggregate'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)] dark:shadow-sm'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground'
                 }`}
               >
                 Agregadas
@@ -456,18 +456,18 @@ function TermAnalysisCard({
               <Badge
                 className="border-0 text-[10px] font-semibold"
                 style={{
-                  backgroundColor: `${scoreColor}26`,
-                  color: 'rgba(255,255,255,0.92)',
-                  boxShadow: `inset 0 0 0 1px ${scoreColor}40`,
+                  backgroundColor: `color-mix(in oklab, ${scoreColor} 16%, white)`,
+                  color: scoreColor,
+                  boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${scoreColor} 42%, white)`,
                 }}
               >
                 Analise
               </Badge>
-              <Badge variant="outline" className="border-border/40 bg-background/20 text-[10px] text-foreground/80">
+              <Badge variant="outline" className="border-border/50 bg-background/80 text-[10px] text-foreground/80 dark:border-border/40 dark:bg-background/20">
                 {relatedTerms.length} relacionados
               </Badge>
               {clusterMetrics.clusterId !== undefined && (
-                <Badge variant="outline" className="border-border/40 bg-background/20 text-[10px] text-foreground/80">
+                <Badge variant="outline" className="border-border/50 bg-background/80 text-[10px] text-foreground/80 dark:border-border/40 dark:bg-background/20">
                   Cluster #{clusterMetrics.clusterId}
                 </Badge>
               )}

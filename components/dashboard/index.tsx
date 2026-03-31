@@ -164,30 +164,30 @@ export function Dashboard() {
               <div className="min-w-0 flex-1">
                 <ScoreDistribution distribution={kpis.scoreDistribution} />
               </div>
-              <div className="flex gap-1 self-start rounded-lg bg-muted/50 p-1 md:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setPanoramaView('scatter')}
-                  aria-pressed={panoramaView === 'scatter'}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
-                    panoramaView === 'scatter'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  Dispersao
+            <div className="flex gap-1 self-start rounded-xl border border-border/60 bg-card/90 p-1.5 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.2)] md:self-auto dark:border-border/50 dark:bg-muted/50 dark:shadow-none">
+              <button
+                type="button"
+                onClick={() => setPanoramaView('scatter')}
+                aria-pressed={panoramaView === 'scatter'}
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                  panoramaView === 'scatter'
+                    ? 'bg-background text-foreground shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)] dark:shadow-sm'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:bg-transparent dark:hover:text-foreground'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Dispersao
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setPanoramaView('table')}
-                  aria-pressed={panoramaView === 'table'}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
-                    panoramaView === 'table'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
+                type="button"
+                onClick={() => setPanoramaView('table')}
+                aria-pressed={panoramaView === 'table'}
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                  panoramaView === 'table'
+                    ? 'bg-background text-foreground shadow-[0_10px_24px_-18px_rgba(15,23,42,0.24)] dark:shadow-sm'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:bg-transparent dark:hover:text-foreground'
+                }`}
+              >
                   <Table2 className="h-3.5 w-3.5" />
                   Tabela
                 </button>

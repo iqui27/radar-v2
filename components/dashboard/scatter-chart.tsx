@@ -12,8 +12,9 @@ import {
   ZAxis,
   ReferenceLine,
 } from 'recharts'
-import { X, ChevronDown } from 'lucide-react'
+import { Check, X, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import { formatNumber, getClusterStats, getScoreColor } from '@/lib/radar-data'
 
@@ -57,7 +58,8 @@ interface ScatterClusterInfo {
 
 export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }: ScatterChartProps) {
   const [colorBy, setColorBy] = useState<'cluster' | 'score'>('cluster')
-  const [showAllClustersModal, setShowAllClustersModal] = useState(false)
+  const [selectedClusterId, setSelectedClusterId] = useState<'all' | number>('all')
+  const [topClusterLimit, setTopClusterLimit] = useState<3 | 5 | 8 | 12 | 'all'>(5)
 
   const sampledTerms = useMemo(() => {
     const rankedByImpact = [...data].sort(
@@ -126,9 +128,31 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
     return sampledTerms.find(t => t.term === highlightTerm)
   }, [sampledTerms, highlightTerm])
 
+  const visibleClusterIds = useMemo(() => {
+    if (topClusterLimit === 'all') {
+      return uniqueClusters
+    }
+    return uniqueClusters.slice(0, topClusterLimit)
+  }, [topClusterLimit, uniqueClusters])
+
+  const visibleTerms = useMemo(() => {
+    if (colorBy !== 'cluster') {
+      return sampledTerms
+    }
+
+    if (selectedClusterId === 'all') {
+      if (topClusterLimit === 'all') {
+        return sampledTerms
+      }
+      return sampledTerms.filter((term) => term.clusterId !== undefined && visibleClusterIds.includes(term.clusterId))
+    }
+
+    return sampledTerms.filter((term) => term.clusterId === selectedClusterId)
+  }, [colorBy, sampledTerms, selectedClusterId, topClusterLimit, visibleClusterIds])
+
   const chartData = useMemo(
     () =>
-      sampledTerms.map((term) => ({
+      visibleTerms.map((term) => ({
         x: term.ctr,
         y: term.position,
         z: term.impressions,
@@ -141,13 +165,13 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
         clusterId: term.clusterId,
         color: colorBy === 'cluster' ? getClusterColor(term.clusterId) : getScoreColor(term.score),
       })),
-    [sampledTerms, colorBy]
+    [visibleTerms, colorBy]
   )
 
   const avgCTR = data.reduce((sum, d) => sum + d.ctr, 0) / data.length
   const avgPosition = data.reduce((sum, d) => sum + d.position, 0) / data.length
   const totalImpressions = data.reduce((sum, d) => sum + d.impressions, 0)
-  const sampledImpressions = sampledTerms.reduce((sum, d) => sum + d.impressions, 0)
+  const sampledImpressions = visibleTerms.reduce((sum, d) => sum + d.impressions, 0)
   const impressionCoverage = totalImpressions > 0 ? sampledImpressions / totalImpressions : 1
 
   const ACTION_COLORS = {
@@ -163,33 +187,41 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
         <div className="absolute inset-0 opacity-40" aria-hidden="true">
           <div className="absolute right-0 top-0 h-28 w-56 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_62%)]" />
         </div>
-        <div className="relative flex items-start justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">
+        <div className="relative flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 xl:flex xl:items-center xl:gap-4">
+            <CardTitle className="text-sm font-medium whitespace-nowrap">
               Matriz CTR vs Posicao
             </CardTitle>
-            <CardDescription className="mt-0.5 text-xs">
-              {sampledTerms.length} termos em foco | {(impressionCoverage * 100).toFixed(0)}% das impressoes | Tamanho = volume de impressoes
+            <CardDescription className="mt-0.5 text-xs xl:mt-0 xl:whitespace-nowrap">
+              {visibleTerms.length} termos em foco | {(impressionCoverage * 100).toFixed(0)}% das impressoes | Tamanho = volume de impressoes
             </CardDescription>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-2.5 py-1 dark:border-border/50 dark:bg-background/60">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2.5 xl:max-w-[56%]">
+            <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/92 px-2 py-1.5 shadow-[0_12px_28px_-20px_rgba(15,23,42,0.18)] dark:border-border/50 dark:bg-background/60 dark:shadow-none">
               <button
                 onClick={() => setColorBy('score')}
-                className={`text-[10px] font-medium uppercase tracking-[0.14em] transition-colors ${colorBy === 'score' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] transition-[background-color,color,box-shadow] ${
+                  colorBy === 'score'
+                    ? 'bg-background text-foreground shadow-[0_8px_20px_-16px_rgba(15,23,42,0.24)] dark:shadow-none'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:bg-white/[0.04] dark:hover:text-foreground'
+                }`}
               >
                 Score
               </button>
-              <div className="h-3 w-px bg-border/50" />
               <button
                 onClick={() => setColorBy('cluster')}
-                className={`text-[10px] font-medium uppercase tracking-[0.14em] transition-colors ${colorBy === 'cluster' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] transition-[background-color,color,box-shadow] ${
+                  colorBy === 'cluster'
+                    ? 'bg-background text-foreground shadow-[0_8px_20px_-16px_rgba(15,23,42,0.24)] dark:shadow-none'
+                    : 'text-foreground/68 hover:bg-black/[0.035] hover:text-foreground dark:text-muted-foreground dark:hover:bg-white/[0.04] dark:hover:text-foreground'
+                }`}
               >
                 Cluster
               </button>
             </div>
-            <div className="rounded-full border border-border/60 bg-background/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground dark:border-border/50 dark:bg-background/60">
-              Total {data.length}
+            <div className="flex min-w-[92px] flex-col items-center justify-center rounded-[22px] border border-border/70 bg-card/92 px-3 py-1.5 text-center shadow-[0_12px_28px_-20px_rgba(15,23,42,0.16)] dark:border-border/50 dark:bg-background/60 dark:shadow-none">
+              <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-muted-foreground">Total</span>
+              <span className="mt-0.5 text-[11px] font-semibold tracking-[0.18em] text-foreground">{data.length}</span>
             </div>
             {colorBy === 'score' ? (
               <div className="flex items-center gap-3">
@@ -228,33 +260,19 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600" />
-                  <span className="text-[10px] text-muted-foreground">
-                    All ({uniqueClusters.length})
-                  </span>
-                </div>
-                {uniqueClusters.slice(0, 5).map((clusterId) => {
-                  const stat = clusterStats.get(clusterId)
-                  return (
-                    <ClusterHoverModal key={clusterId} clusterId={clusterId} stat={stat} />
-                  )
-                })}
-                {uniqueClusters.length > 5 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllClustersModal(true)}
-                    className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
-                  >
-                    +{uniqueClusters.length - 5}
-                  </button>
-                )}
-                {showAllClustersModal && (
-                  <AllClustersModal
-                    clusters={Array.from(clusterStats.values()).sort((a, b) => b.totalImpressions - a.totalImpressions)}
-                    onClose={() => setShowAllClustersModal(false)}
-                  />
-                )}
+                <ClusterSelector
+                  clusterStats={clusterStats}
+                  visibleClusterIds={visibleClusterIds}
+                  selectedClusterId={selectedClusterId}
+                  onSelect={(clusterId) => setSelectedClusterId(clusterId)}
+                />
+                <TopLimitSelector
+                  value={topClusterLimit}
+                  onSelect={(value) => {
+                    setTopClusterLimit(value)
+                    setSelectedClusterId('all')
+                  }}
+                />
               </>
             )}
           </div>
@@ -368,130 +386,140 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
           </ResponsiveContainer>
         </div>
       </CardContent>
+
     </Card>
   )
 }
 
-function ClusterHoverModal({ clusterId, stat }: { clusterId: number; stat: ScatterClusterInfo | undefined }) {
-  const [show, setShow] = useState(false)
-  
-  if (!stat) return null
-  
+function ClusterSelector({
+  clusterStats,
+  visibleClusterIds,
+  selectedClusterId,
+  onSelect,
+}: {
+  clusterStats: Map<number, ScatterClusterInfo>
+  visibleClusterIds: number[]
+  selectedClusterId: 'all' | number
+  onSelect: (clusterId: 'all' | number) => void
+}) {
+  const clusters = visibleClusterIds
+    .map((clusterId) => clusterStats.get(clusterId))
+    .filter((cluster): cluster is ScatterClusterInfo => Boolean(cluster))
+
   return (
-    <div 
-      className="group relative flex items-center gap-1.5"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
-      <div 
-        className="h-2 w-2 rounded-full cursor-pointer" 
-        style={{ backgroundColor: getClusterColor(clusterId) }}
-      />
-      <span className="text-[10px] text-muted-foreground">
-        {stat.name.slice(0, 12)} ({stat.termCount})
-      </span>
-      {show && (
-        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-xl">
-          <p className="mb-2 border-b border-border/50 pb-2 text-[10px] font-semibold text-foreground">
-            {stat.name}
-          </p>
-          <p className="mb-2 text-[10px] text-muted-foreground">
-            Score médio: <span className="font-mono font-medium text-foreground">{stat.avgScore.toFixed(3)}</span> · CTR médio: <span className="font-mono font-medium text-foreground">{stat.avgCTR.toFixed(2)}%</span>
-          </p>
-          <div className="max-h-32 overflow-y-auto">
-            <p className="mb-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">Termos:</p>
-            <div className="flex flex-wrap gap-1">
-              {stat.terms.slice(0, 20).map((term) => (
-                <span key={term} className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                  {term}
-                </span>
-              ))}
-              {stat.terms.length > 20 && (
-                <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                  +{stat.terms.length - 20} mais
-                </span>
-              )}
-            </div>
-          </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/92 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[0_12px_28px_-20px_rgba(15,23,42,0.16)] transition-colors hover:border-primary/20 hover:text-primary dark:border-border/50 dark:bg-background/60 dark:shadow-none"
+        >
+          <span className="text-muted-foreground">Cluster</span>
+          <span className="max-w-[120px] truncate normal-case tracking-normal text-foreground">
+            {selectedClusterId === 'all'
+              ? 'Todos'
+              : clusterStats.get(selectedClusterId)?.name ?? 'Todos'}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[280px] rounded-2xl border-border/50 bg-popover/95 p-2 shadow-2xl backdrop-blur-xl">
+        <div className="px-3 pb-2 pt-1">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Cluster visivel</p>
+          <p className="mt-1 text-sm font-medium tracking-tight text-foreground">Escolha um cluster ou veja todos</p>
         </div>
-      )}
-    </div>
+        <div className="space-y-1">
+          <ClusterOption
+            label="Todos os clusters"
+            selected={selectedClusterId === 'all'}
+            onClick={() => onSelect('all')}
+          />
+          {clusters.map((cluster) => (
+            <ClusterOption
+              key={cluster.clusterId}
+              label={cluster.name}
+              meta={`${cluster.termCount} termos`}
+              dotColor={getClusterColor(cluster.clusterId)}
+              selected={selectedClusterId === cluster.clusterId}
+              onClick={() => onSelect(cluster.clusterId)}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 
-function AllClustersModal({ 
-  clusters, 
-  onClose 
-}: { 
-  clusters: ScatterClusterInfo[]
-  onClose: () => void 
+function TopLimitSelector({
+  value,
+  onSelect,
+}: {
+  value: 3 | 5 | 8 | 12 | 'all'
+  onSelect: (value: 3 | 5 | 8 | 12 | 'all') => void
+}) {
+  const options: Array<3 | 5 | 8 | 12 | 'all'> = [3, 5, 8, 12, 'all']
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/92 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[0_12px_28px_-20px_rgba(15,23,42,0.16)] transition-colors hover:border-primary/20 hover:text-primary dark:border-border/50 dark:bg-background/60 dark:shadow-none"
+        >
+          <span className="text-muted-foreground">Top</span>
+          <span className="text-foreground">{value === 'all' ? 'Todos' : value}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[180px] rounded-2xl border-border/50 bg-popover/95 p-2 shadow-2xl backdrop-blur-xl">
+        <div className="px-3 pb-2 pt-1">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Top clusters</p>
+        </div>
+        <div className="space-y-1">
+          {options.map((option) => (
+            <ClusterOption
+              key={option}
+              label={option === 'all' ? 'Todos' : `Top ${option}`}
+              selected={value === option}
+              onClick={() => onSelect(option)}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function ClusterOption({
+  label,
+  meta,
+  dotColor,
+  selected,
+  onClick,
+}: {
+  label: string
+  meta?: string
+  dotColor?: string
+  selected: boolean
+  onClick: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Todos os Clusters</h2>
-            <p className="text-sm text-muted-foreground">{clusters.length} clusters encontrados</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="max-h-[60vh] overflow-y-auto p-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {clusters.map((cluster) => (
-              <div 
-                key={cluster.clusterId}
-                className="rounded-xl border border-border/40 bg-muted/20 p-4 dark:border-white/6 dark:bg-background/20"
-              >
-                <div className="mb-3 flex items-center gap-2">
-                  <div 
-                    className="h-3 w-3 rounded-full" 
-                    style={{ backgroundColor: getClusterColor(cluster.clusterId) }}
-                  />
-                  <span className="font-medium text-foreground">{cluster.name}</span>
-                </div>
-                <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
-                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
-                    <p className="text-muted-foreground">Termos</p>
-                    <p className="font-mono font-semibold text-foreground">{cluster.termCount}</p>
-                  </div>
-                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
-                    <p className="text-muted-foreground">Score</p>
-                    <p className="font-mono font-semibold text-foreground">{cluster.avgScore.toFixed(2)}</p>
-                  </div>
-                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
-                    <p className="text-muted-foreground">CTR</p>
-                    <p className="font-mono font-semibold text-foreground">{cluster.avgCTR.toFixed(1)}%</p>
-                  </div>
-                </div>
-                <div className="mb-2 text-[10px] text-muted-foreground">
-                  Impressões: <span className="font-mono font-medium text-foreground">{formatNumber(cluster.totalImpressions)}</span>
-                </div>
-                <div className="max-h-24 overflow-y-auto">
-                  <div className="flex flex-wrap gap-1">
-                    {cluster.terms.slice(0, 15).map((term) => (
-                      <span key={term} className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        {term}
-                      </span>
-                    ))}
-                    {cluster.terms.length > 15 && (
-                      <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        +{cluster.terms.length - 15}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-[background-color,color,border-color] ${
+        selected ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+      }`}
+    >
+      <div className="min-w-0 flex items-center gap-2">
+        {dotColor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />}
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{label}</div>
+          {meta && <div className="mt-0.5 text-[11px] text-muted-foreground">{meta}</div>}
         </div>
       </div>
-    </div>
+      <div className="ml-3 flex h-5 w-5 items-center justify-center rounded-full border border-border/50 bg-background/80">
+        {selected ? <Check className="h-3 w-3 text-primary" /> : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />}
+      </div>
+    </button>
   )
 }
