@@ -54,6 +54,8 @@ interface ScatterClusterInfo {
 }
 
 export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
+  const [colorBy, setColorBy] = useState<'cluster' | 'score'>('cluster')
+
   const sampledTerms = useMemo(() => {
     const rankedByImpact = [...data].sort(
       (a, b) => b.impressions - a.impressions || b.clicks - a.clicks
@@ -109,7 +111,11 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
   }, [sampledTerms, data])
 
   const uniqueClusters = useMemo(() => {
-    return Array.from(clusterStats.keys()).sort((a, b) => a - b)
+    return Array.from(clusterStats.keys()).sort((a, b) => {
+      const aImpressions = clusterStats.get(a)?.totalImpressions ?? 0
+      const bImpressions = clusterStats.get(b)?.totalImpressions ?? 0
+      return bImpressions - aImpressions
+    })
   }, [clusterStats])
 
   const highlightedTermData = useMemo(() => {
@@ -128,10 +134,11 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
         clicks: term.clicks,
         impressions: term.impressions,
         action: term.action.label,
+        actionType: term.action.type,
         clusterId: term.clusterId,
-        color: getClusterColor(term.clusterId),
+        color: colorBy === 'cluster' ? getClusterColor(term.clusterId) : getScoreColor(term.score),
       })),
-    [sampledTerms]
+    [sampledTerms, colorBy]
   )
 
   const avgCTR = data.reduce((sum, d) => sum + d.ctr, 0) / data.length
@@ -139,6 +146,13 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
   const totalImpressions = data.reduce((sum, d) => sum + d.impressions, 0)
   const sampledImpressions = sampledTerms.reduce((sum, d) => sum + d.impressions, 0)
   const impressionCoverage = totalImpressions > 0 ? sampledImpressions / totalImpressions : 1
+
+  const ACTION_COLORS = {
+    avoid: '#10B981',
+    evaluate: '#6366F1',
+    test: '#F59E0B',
+    invest: '#EF4444',
+  }
 
   return (
     <Card className="gap-0 overflow-hidden border-border/60 py-0 bg-gradient-to-br from-card via-card to-muted/20 dark:border-border/30 dark:to-muted/10">
@@ -155,24 +169,50 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
               {sampledTerms.length} termos em foco | {(impressionCoverage * 100).toFixed(0)}% das impressoes | Tamanho = volume de impressoes
             </CardDescription>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <div className="rounded-full border border-border/60 bg-background/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground dark:border-border/50 dark:bg-background/60">
-              Universo total {data.length}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-2.5 py-1 dark:border-border/50 dark:bg-background/60">
+              <button
+                onClick={() => setColorBy('score')}
+                className={`text-[10px] font-medium uppercase tracking-[0.14em] transition-colors ${colorBy === 'score' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}
+              >
+                Score
+              </button>
+              <div className="h-3 w-px bg-border/50" />
+              <button
+                onClick={() => setColorBy('cluster')}
+                className={`text-[10px] font-medium uppercase tracking-[0.14em] transition-colors ${colorBy === 'cluster' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70'}`}
+              >
+                Cluster
+              </button>
             </div>
-            {highlightedTermData?.clusterId !== undefined ? (
+            <div className="rounded-full border border-border/60 bg-background/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground dark:border-border/50 dark:bg-background/60">
+              Total {data.length}
+            </div>
+            {colorBy === 'score' ? (
+              <div className="flex items-center gap-3">
+                {(['avoid', 'evaluate', 'test', 'invest'] as const).map((action) => (
+                  <div key={action} className="flex items-center gap-1.5">
+                    <div 
+                      className="h-2 w-2 rounded-full" 
+                      style={{ backgroundColor: ACTION_COLORS[action] }}
+                    />
+                    <span className="text-[10px] text-muted-foreground capitalize">
+                      {action === 'avoid' ? 'Evitar' : action === 'evaluate' ? 'Avaliar' : action === 'test' ? 'Testar' : 'Investir'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : highlightedTermData?.clusterId !== undefined ? (
               <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1">
                 <div 
                   className="h-2 w-2 rounded-full" 
                   style={{ backgroundColor: getClusterColor(highlightedTermData.clusterId) }}
                 />
                 <span className="text-[10px] font-medium text-primary">
-                  {highlightedTermData.clusterId}
+                  {clusterStats.get(highlightedTermData.clusterId)?.name}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  ({clusterStats.get(highlightedTermData.clusterId)?.termCount ?? 0} termos)
-                </span>
-                <span className="text-[10px] text-muted-foreground/70">
-                  · {clusterStats.get(highlightedTermData.clusterId)?.name}
+                  ({clusterStats.get(highlightedTermData.clusterId)?.termCount ?? 0})
                 </span>
               </div>
             ) : (
@@ -256,6 +296,7 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const d = payload[0].payload
+                    const clusterName = d.clusterId !== undefined ? clusterStats.get(d.clusterId)?.name : null
                     return (
                       <div className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xl">
                         <div className="flex items-center gap-2">
@@ -264,9 +305,9 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                             style={{ backgroundColor: d.color }}
                           />
                           <span className="text-sm font-medium">{d.term}</span>
-                          {d.clusterId !== undefined && (
+                          {clusterName && (
                             <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground">
-                              Cluster {d.clusterId}
+                              {clusterName}
                             </span>
                           )}
                         </div>
