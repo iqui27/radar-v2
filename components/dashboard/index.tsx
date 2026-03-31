@@ -197,7 +197,11 @@ export function Dashboard() {
             {/* Main Content */}
             {panoramaView === 'scatter' ? (
               <div className="min-w-0 space-y-6">
-                <RadarScatterChart data={enrichedData} highlightTerm={selectedEnrichedTerm?.term} />
+                <RadarScatterChart 
+                  data={enrichedData} 
+                  highlightTerm={selectedEnrichedTerm?.term}
+                  onHighlightTermChange={(term) => setSelectedTerm(term)}
+                />
                 <div className="grid gap-4 xl:grid-cols-2">
                   <ScoreDistributionChart data={enrichedData} />
                   <TopTermsChart data={enrichedData} />

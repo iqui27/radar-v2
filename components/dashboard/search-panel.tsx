@@ -505,7 +505,7 @@ function TermAnalysisCard({
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: getScoreColor(cluster.avgScore) }}
                         />
-                        Cluster {cluster.clusterId}
+                        {cluster.name}
                         <span className="text-[10px] text-muted-foreground">
                           ({cluster.terms.length})
                         </span>
@@ -514,7 +514,7 @@ function TermAnalysisCard({
                         <div className="absolute left-0 top-full z-50 mt-2 min-w-[220px] rounded-xl border border-border/50 bg-card p-3 shadow-xl">
                           <div className="mb-2 flex items-center justify-between border-b border-border/30 pb-2">
                             <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                              Cluster {cluster.clusterId}
+                              {cluster.name}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
                               Score: {cluster.avgScore.toFixed(2)}

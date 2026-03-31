@@ -445,7 +445,7 @@ export function getRelatedClusters(
   selectedTerm: EnrichedTermData,
   allTerms: EnrichedTermData[],
   maxClusters: number = 5
-): Array<{ clusterId: number; terms: EnrichedTermData[]; avgScore: number; avgCTR: number }> {
+): Array<{ clusterId: number; name: string; terms: EnrichedTermData[]; avgScore: number; avgCTR: number }> {
   if (!selectedTerm.clusterId) return []
   
   const selectedClusterId = selectedTerm.clusterId
@@ -463,6 +463,7 @@ export function getRelatedClusters(
   // Calculate similarity between selected term's cluster and other clusters
   const clusterSimilarities: Array<{
     clusterId: number
+    name: string
     terms: EnrichedTermData[]
     avgScore: number
     avgCTR: number
@@ -484,8 +485,13 @@ export function getRelatedClusters(
     const avgScore = clusterTerms.reduce((sum, t) => sum + t.score, 0) / clusterTerms.length
     const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
     
+    // Find top term by impressions for cluster name
+    const sortedByImpressions = [...clusterTerms].sort((a, b) => b.impressions - a.impressions)
+    const topTerm = sortedByImpressions[0]?.term ?? `Cluster ${cid}`
+    
     clusterSimilarities.push({
       clusterId: cid,
+      name: topTerm,
       terms: clusterTerms,
       avgScore,
       avgCTR,

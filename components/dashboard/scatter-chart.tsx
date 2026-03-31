@@ -12,6 +12,7 @@ import {
   ZAxis,
   ReferenceLine,
 } from 'recharts'
+import { X, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import { formatNumber, getClusterStats, getScoreColor } from '@/lib/radar-data'
@@ -19,6 +20,7 @@ import { formatNumber, getClusterStats, getScoreColor } from '@/lib/radar-data'
 interface ScatterChartProps {
   data: EnrichedTermData[]
   highlightTerm?: string
+  onHighlightTermChange?: (term: string | null) => void
 }
 
 const MAX_SCATTER_TERMS = 240
@@ -53,8 +55,9 @@ interface ScatterClusterInfo {
   totalImpressions: number
 }
 
-export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
+export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }: ScatterChartProps) {
   const [colorBy, setColorBy] = useState<'cluster' | 'score'>('cluster')
+  const [showAllClustersModal, setShowAllClustersModal] = useState(false)
 
   const sampledTerms = useMemo(() => {
     const rankedByImpact = [...data].sort(
@@ -204,6 +207,14 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
               </div>
             ) : highlightedTermData?.clusterId !== undefined ? (
               <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1">
+                <button
+                  type="button"
+                  onClick={() => onHighlightTermChange?.(null)}
+                  className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary hover:bg-primary/30"
+                  title="Ver todos"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
                 <div 
                   className="h-2 w-2 rounded-full" 
                   style={{ backgroundColor: getClusterColor(highlightedTermData.clusterId) }}
@@ -230,9 +241,19 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                   )
                 })}
                 {uniqueClusters.length > 5 && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllClustersModal(true)}
+                    className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
+                  >
                     +{uniqueClusters.length - 5}
-                  </span>
+                  </button>
+                )}
+                {showAllClustersModal && (
+                  <AllClustersModal
+                    clusters={Array.from(clusterStats.values()).sort((a, b) => b.totalImpressions - a.totalImpressions)}
+                    onClose={() => setShowAllClustersModal(false)}
+                  />
                 )}
               </>
             )}
@@ -367,12 +388,12 @@ function ClusterHoverModal({ clusterId, stat }: { clusterId: number; stat: Scatt
         style={{ backgroundColor: getClusterColor(clusterId) }}
       />
       <span className="text-[10px] text-muted-foreground">
-        {clusterId} ({stat.termCount})
+        {stat.name.slice(0, 12)} ({stat.termCount})
       </span>
       {show && (
         <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-xl">
           <p className="mb-2 border-b border-border/50 pb-2 text-[10px] font-semibold text-foreground">
-            Cluster {clusterId}: {stat.name}
+            {stat.name}
           </p>
           <p className="mb-2 text-[10px] text-muted-foreground">
             Score médio: <span className="font-mono font-medium text-foreground">{stat.avgScore.toFixed(3)}</span> · CTR médio: <span className="font-mono font-medium text-foreground">{stat.avgCTR.toFixed(2)}%</span>
@@ -394,6 +415,83 @@ function ClusterHoverModal({ clusterId, stat }: { clusterId: number; stat: Scatt
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function AllClustersModal({ 
+  clusters, 
+  onClose 
+}: { 
+  clusters: ScatterClusterInfo[]
+  onClose: () => void 
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Todos os Clusters</h2>
+            <p className="text-sm text-muted-foreground">{clusters.length} clusters encontrados</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {clusters.map((cluster) => (
+              <div 
+                key={cluster.clusterId}
+                className="rounded-xl border border-border/40 bg-muted/20 p-4 dark:border-white/6 dark:bg-background/20"
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <div 
+                    className="h-3 w-3 rounded-full" 
+                    style={{ backgroundColor: getClusterColor(cluster.clusterId) }}
+                  />
+                  <span className="font-medium text-foreground">{cluster.name}</span>
+                </div>
+                <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
+                    <p className="text-muted-foreground">Termos</p>
+                    <p className="font-mono font-semibold text-foreground">{cluster.termCount}</p>
+                  </div>
+                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
+                    <p className="text-muted-foreground">Score</p>
+                    <p className="font-mono font-semibold text-foreground">{cluster.avgScore.toFixed(2)}</p>
+                  </div>
+                  <div className="rounded bg-background/50 px-2 py-1.5 text-center">
+                    <p className="text-muted-foreground">CTR</p>
+                    <p className="font-mono font-semibold text-foreground">{cluster.avgCTR.toFixed(1)}%</p>
+                  </div>
+                </div>
+                <div className="mb-2 text-[10px] text-muted-foreground">
+                  Impressões: <span className="font-mono font-medium text-foreground">{formatNumber(cluster.totalImpressions)}</span>
+                </div>
+                <div className="max-h-24 overflow-y-auto">
+                  <div className="flex flex-wrap gap-1">
+                    {cluster.terms.slice(0, 15).map((term) => (
+                      <span key={term} className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        {term}
+                      </span>
+                    ))}
+                    {cluster.terms.length > 15 && (
+                      <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        +{cluster.terms.length - 15}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
