@@ -12,6 +12,7 @@ import { ConfigPanel } from './config-panel'
 import { ScoreDistributionChart, TopTermsChart } from './distribution-chart'
 import {
   enrichTermData,
+  assignClusterIds,
   calculateKPIs,
   type EnrichedTermData,
 } from '@/lib/radar-data'
@@ -54,7 +55,7 @@ export function Dashboard() {
   }, [])
 
   const enrichedData = useMemo(() => {
-    return enrichTermData(rawData, config)
+    return assignClusterIds(enrichTermData(rawData, config))
   }, [config, rawData])
 
   const kpis = useMemo(() => {
