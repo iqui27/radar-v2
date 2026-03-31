@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
@@ -495,64 +496,72 @@ function TermAnalysisCard({
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {relatedClusters.slice(0, 4).map((cluster) => (
-                    <div key={cluster.clusterId} className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedClusterId(expandedClusterId === cluster.clusterId ? null : cluster.clusterId)}
-                        className="flex items-center gap-2 rounded-full border border-white/8 bg-background/16 px-3 py-1 text-[11px] text-foreground/82 transition-colors hover:bg-background/24 hover:text-foreground"
+                    <Popover
+                      key={cluster.clusterId}
+                      open={expandedClusterId === cluster.clusterId}
+                      onOpenChange={(open) => setExpandedClusterId(open ? cluster.clusterId : null)}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 rounded-full border border-white/8 bg-background/16 px-3 py-1 text-[11px] text-foreground/82 transition-colors hover:bg-background/24 hover:text-foreground"
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: getScoreColor(cluster.avgScore) }}
+                          />
+                          {cluster.name}
+                          <span className="text-[10px] text-muted-foreground">
+                            ({cluster.terms.length})
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        side="bottom"
+                        sideOffset={8}
+                        className="w-[260px] rounded-2xl border-border/50 bg-popover/95 p-3 shadow-2xl backdrop-blur-xl"
                       >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: getScoreColor(cluster.avgScore) }}
-                        />
-                        {cluster.name}
-                        <span className="text-[10px] text-muted-foreground">
-                          ({cluster.terms.length})
-                        </span>
-                      </button>
-                      {expandedClusterId === cluster.clusterId && (
-                        <div className="absolute left-0 top-full z-50 mt-2 min-w-[220px] rounded-xl border border-border/50 bg-card p-3 shadow-xl">
-                          <div className="mb-2 flex items-center justify-between border-b border-border/30 pb-2">
-                            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                              {cluster.name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              Score: {cluster.avgScore.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {cluster.terms.slice(0, 8).map((term) => (
-                              <button
-                                key={term.term}
-                                type="button"
-                                onClick={() => {
-                                  setExpandedClusterId(null)
-                                  onTermSelect(term)
-                                }}
-                                className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs hover:bg-muted/50"
-                              >
-                                <span className="truncate text-foreground/80">{term.term}</span>
-                                <span className="ml-2 font-mono text-[10px] text-muted-foreground">
-                                  {term.position.toFixed(1)}
-                                </span>
-                              </button>
-                            ))}
-                            {cluster.terms.length > 8 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsRelatedTermsOpen(true)
-                                  setExpandedClusterId(null)
-                                }}
-                                className="w-full rounded-lg px-2 py-1 text-center text-[10px] text-muted-foreground hover:bg-muted/50"
-                              >
-                                +{cluster.terms.length - 8} mais
-                              </button>
-                            )}
-                          </div>
+                        <div className="mb-2 flex items-center justify-between border-b border-border/30 pb-2">
+                          <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                            {cluster.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            Score: {cluster.avgScore.toFixed(2)}
+                          </span>
                         </div>
-                      )}
-                    </div>
+                        <div className="space-y-1">
+                          {cluster.terms.slice(0, 8).map((term) => (
+                            <button
+                              key={term.term}
+                              type="button"
+                              onClick={() => {
+                                setExpandedClusterId(null)
+                                onTermSelect(term)
+                              }}
+                              className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs hover:bg-muted/50"
+                            >
+                              <span className="truncate text-foreground/80">{term.term}</span>
+                              <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                                {term.position.toFixed(1)}
+                              </span>
+                            </button>
+                          ))}
+                          {cluster.terms.length > 8 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsRelatedTermsOpen(true)
+                                setExpandedClusterId(null)
+                              }}
+                              className="w-full rounded-lg px-2 py-1 text-center text-[10px] text-muted-foreground hover:bg-muted/50"
+                            >
+                              +{cluster.terms.length - 8} mais
+                            </button>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   ))}
                   {relatedClusters.length > 4 && (
                     <button
