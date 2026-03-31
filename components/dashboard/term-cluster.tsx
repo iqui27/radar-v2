@@ -142,7 +142,7 @@ export function TermCluster({ selectedTerm, allTerms, onTermSelect }: TermCluste
   const [links, setLinks] = useState<Link[]>([])
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(0.86)
   const [dragState, setDragState] = useState<DragState | null>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 })
 
@@ -274,7 +274,7 @@ export function TermCluster({ selectedTerm, allTerms, onTermSelect }: TermCluste
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setZoom((z) => Math.max(0.75, z - 0.1))}
+            onClick={() => setZoom((z) => Math.max(0.65, z - 0.1))}
             aria-label="Reduzir zoom do cluster"
           >
             <ZoomOut className="h-4 w-4" />
@@ -286,7 +286,7 @@ export function TermCluster({ selectedTerm, allTerms, onTermSelect }: TermCluste
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setZoom((z) => Math.min(1.4, z + 0.1))}
+            onClick={() => setZoom((z) => Math.min(1.3, z + 0.1))}
             aria-label="Aumentar zoom do cluster"
           >
             <ZoomIn className="h-4 w-4" />

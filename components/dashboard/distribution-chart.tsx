@@ -151,6 +151,8 @@ export function TopTermsChart({ data, title = 'Top Oportunidades RADAR', limit =
       color: getScoreColor(d.score),
     }))
 
+  const chartHeight = Math.max(184, topData.length * 34)
+
   return (
     <Card className="gap-0 overflow-hidden border-border/60 py-0 bg-gradient-to-br from-card via-card to-muted/20 dark:border-border/30 dark:to-muted/10">
       <CardHeader className="relative overflow-hidden border-b border-border/60 bg-gradient-to-br from-muted/45 via-muted/24 to-background px-5 py-4 dark:border-border/30 dark:from-muted/28 dark:via-muted/16">
@@ -167,13 +169,13 @@ export function TopTermsChart({ data, title = 'Top Oportunidades RADAR', limit =
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="h-[180px]">
+        <div style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={topData}
               layout="vertical"
-              margin={{ top: 0, right: 10, bottom: 0, left: 0 }}
-              barSize={12}
+              margin={{ top: 0, right: -10, bottom: 0, left: -8 }}
+              barSize={13}
             >
               <XAxis
                 type="number"
@@ -188,7 +190,8 @@ export function TopTermsChart({ data, title = 'Top Oportunidades RADAR', limit =
                 tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.8 }}
                 axisLine={false}
                 tickLine={false}
-                width={90}
+                interval={0}
+                width={100}
               />
               <Tooltip
                 cursor={{ fill: 'currentColor', fillOpacity: 0.05 }}
