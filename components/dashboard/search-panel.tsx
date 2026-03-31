@@ -4,7 +4,9 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
   Eye,
+  Filter,
   MousePointerClick,
   Search,
   Sparkles,
@@ -16,12 +18,18 @@ import {
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
 import { calculateClusterMetrics, formatNumber, getScoreColor, getScoreLabel } from '@/lib/radar-data'
+
+interface BrandFilter {
+  includeBB: boolean
+  excludeBB: boolean
+}
 
 interface SearchPanelProps {
   data: EnrichedTermData[]
@@ -43,16 +51,45 @@ export function SearchPanel({
   const [search, setSearch] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [metricsView, setMetricsView] = useState<'aggregate' | 'individual'>('aggregate')
+  const [brandFilter, setBrandFilter] = useState<BrandFilter>({ includeBB: false, excludeBB: false })
+  const [isBrandFilterOpen, setIsBrandFilterOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const brandFilterRef = useRef<HTMLDivElement>(null)
+
+  // Filter data based on brand filter
+  const filteredData = useMemo(() => {
+    return data.filter(term => {
+      const lowerTerm = term.term.toLowerCase()
+      const hasBB = lowerTerm.includes('bb ') || lowerTerm.startsWith('bb ')
+      
+      if (brandFilter.includeBB && !hasBB) return false
+      if (brandFilter.excludeBB && hasBB) return false
+      
+      return true
+    })
+  }, [data, brandFilter])
 
   const suggestions = useMemo(() => {
     if (!search) return []
     const query = search.toLowerCase()
-    return data
+    return filteredData
       .filter(d => d.term.toLowerCase().includes(query))
       .slice(0, 8)
-  }, [data, search])
+  }, [filteredData, search])
+
+  // Close brand filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (brandFilterRef.current && !brandFilterRef.current.contains(e.target as Node)) {
+        setIsBrandFilterOpen(false)
+      }
+    }
+    if (isBrandFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isBrandFilterOpen])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -128,8 +165,74 @@ export function SearchPanel({
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="text-[11px] text-muted-foreground">
-              {data.length} termos disponiveis para consulta
+              {filteredData.length} termos disponiveis para consulta
+              {filteredData.length !== data.length && (
+                <span className="ml-1 text-muted-foreground/60">
+                  (de {data.length})
+                </span>
+              )}
             </p>
+
+            {/* Brand Filter Dropdown */}
+            <div ref={brandFilterRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsBrandFilterOpen(!isBrandFilterOpen)}
+                className="h-7 gap-1.5 rounded-full border-border/50 bg-card px-3 text-[11px] text-foreground/75 hover:border-primary/25 hover:text-foreground dark:bg-card/55"
+              >
+                <Filter className="h-3 w-3" />
+                <span>Filtrar marca</span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${isBrandFilterOpen ? 'rotate-180' : ''}`} />
+              </Button>
+
+              {isBrandFilterOpen && (
+                <div className="absolute left-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-xl border border-border/50 bg-card shadow-xl">
+                  <div className="p-3">
+                    <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      Filtrar por marca
+                    </p>
+                    <div className="space-y-2">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/50">
+                        <input
+                          type="checkbox"
+                          checked={brandFilter.includeBB}
+                          onChange={(e) => setBrandFilter(prev => ({ 
+                            ...prev, 
+                            includeBB: e.target.checked,
+                            excludeBB: e.target.checked ? false : prev.excludeBB 
+                          }))}
+                          className="h-3.5 w-3.5 rounded border-border/50 text-primary focus:ring-primary/50"
+                        />
+                        <span className="text-sm">Apenas termos com "BB"</span>
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/50">
+                        <input
+                          type="checkbox"
+                          checked={brandFilter.excludeBB}
+                          onChange={(e) => setBrandFilter(prev => ({ 
+                            ...prev, 
+                            excludeBB: e.target.checked,
+                            includeBB: e.target.checked ? false : prev.includeBB 
+                          }))}
+                          className="h-3.5 w-3.5 rounded border-border/50 text-primary focus:ring-primary/50"
+                        />
+                        <span className="text-sm">Remover termos com "BB"</span>
+                      </label>
+                    </div>
+                    {(brandFilter.includeBB || brandFilter.excludeBB) && (
+                      <button
+                        type="button"
+                        onClick={() => setBrandFilter({ includeBB: false, excludeBB: false })}
+                        className="mt-3 w-full rounded-lg border border-border/30 bg-muted/30 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      >
+                        Limpar filtro
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {historyEntries.length > 0 && (
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -233,7 +336,7 @@ export function SearchPanel({
       {selectedTerm && (
         <TermAnalysisCard
           term={selectedTerm}
-          allData={data}
+          allData={filteredData}
           onTermSelect={onTermSelect}
           metricsView={metricsView}
           selectedTermBaseline={selectedTermBaseline}
@@ -243,7 +346,7 @@ export function SearchPanel({
       {/* Cluster Visualization - The Main Feature */}
       <TermCluster 
         selectedTerm={selectedTerm} 
-        allTerms={data} 
+        allTerms={filteredData} 
         onTermSelect={onTermSelect}
       />
 
@@ -302,6 +405,12 @@ function TermAnalysisCard({
 
   const stats = [
     {
+      label: 'Impressoes',
+      value: formatNumber(isAggregateView ? clusterMetrics.totalImpressions : selectedTerm.impressions),
+      icon: Eye,
+      delta: null,
+    },
+    {
       label: isAggregateView ? 'Posicao Media' : 'Posicao',
       value: isAggregateView ? clusterMetrics.avgPosition.toFixed(1) : selectedTerm.position.toFixed(1),
       icon: Target,
@@ -317,12 +426,6 @@ function TermAnalysisCard({
       label: 'Cliques',
       value: formatNumber(isAggregateView ? clusterMetrics.totalClicks : selectedTerm.clicks),
       icon: MousePointerClick,
-      delta: null,
-    },
-    {
-      label: 'Impressoes',
-      value: formatNumber(isAggregateView ? clusterMetrics.totalImpressions : selectedTerm.impressions),
-      icon: Eye,
       delta: null,
     },
   ]
