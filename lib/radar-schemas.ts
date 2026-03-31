@@ -4,13 +4,10 @@ export const RADAR_STORAGE_VERSION = 1
 
 export const radarConfigSchema = z
   .object({
-    weights: z.tuple([
-      z.number().min(0).max(2),
-      z.number().min(0).max(2),
-      z.number().min(0).max(2),
-    ]),
+    weights: z.array(z.number().min(0).max(2)).length(3),
     posThresholds: z
-      .tuple([z.number().int().min(1).max(19), z.number().int().min(2).max(20)])
+      .array(z.number().int().min(1).max(20))
+      .length(2)
       .superRefine(([first, second], ctx) => {
         if (first >= second) {
           ctx.addIssue({
@@ -20,11 +17,8 @@ export const radarConfigSchema = z
         }
       }),
     scoreBands: z
-      .tuple([
-        z.number().min(0).max(1),
-        z.number().min(0).max(1),
-        z.number().min(0).max(1),
-      ])
+      .array(z.number().min(0).max(1))
+      .length(3)
       .superRefine(([first, second, third], ctx) => {
         if (!(first < second && second < third)) {
           ctx.addIssue({
@@ -94,6 +88,7 @@ export const radarDataSourceRecordSchema = z.object({
 
 export const radarPersistenceStateSchema = z.object({
   version: z.literal(RADAR_STORAGE_VERSION),
+  currentConfig: radarConfigSchema.nullable().default(null),
   configSnapshots: z.array(radarConfigSnapshotSchema).default([]),
   searchHistory: z.array(radarSearchHistoryEntrySchema).default([]),
   dataSources: z.array(radarDataSourceRecordSchema).default([]),

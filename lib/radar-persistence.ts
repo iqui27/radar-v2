@@ -27,6 +27,7 @@ function createId(prefix: string): string {
 export function createEmptyRadarPersistenceState(): RadarPersistenceState {
   return {
     version: RADAR_STORAGE_VERSION,
+    currentConfig: null,
     configSnapshots: [],
     searchHistory: [],
     dataSources: [],
