@@ -1,64 +1,7 @@
 # Requirements: RADAR v2
 
-**Defined:** 2026-03-31
-**Core Value:** O cliente precisa tomar decisao sobre termos com contexto confiavel, historico legivel e leitura consistente dos dados.
+No active milestone requirements yet.
 
-## v1 Requirements
+The shipped `v1.0` requirements were archived in [.planning/milestones/v1.0-REQUIREMENTS.md](/Users/hrocha/Projetos/Monumenta/radar-v2/.planning/milestones/v1.0-REQUIREMENTS.md).
 
-### History
-
-- [x] **HIST-01**: Usuario pode ver historico cronologico das buscas e termos selecionados.
-- [x] **HIST-02**: Usuario pode revisar a evolucao das metricas de um termo ao longo do historico salvo.
-- [x] **HIST-03**: Ao selecionar um termo, o card de historico mostra deltas relevantes versus snapshot anterior.
-
-### Configuration
-
-- [x] **CONF-01**: Alteracoes das variaveis do score RADAR respeitam validacoes e invariantes antes de salvar.
-- [x] **CONF-02**: Salvar configuracao gera snapshot com timestamp e contexto do termo consultado quando houver.
-- [x] **CONF-03**: Usuario pode restaurar um snapshot anterior de configuracao pelo historico.
-
-### Data Sources
-
-- [x] **DATA-01**: Usuario pode importar planilha com novos termos e metricas.
-- [x] **DATA-02**: Cada importacao cria uma nova versao identificavel da origem de dados.
-- [x] **DATA-03**: Usuario pode escolher a origem de dados ativa por dropdown.
-- [x] **DATA-04**: Ao trocar a origem, todo o dashboard recalcula KPIs, tabela, consulta e graficos.
-
-## v2 Requirements
-
-### Collaboration
-
-- **COLL-01**: Historicos e versoes podem ser compartilhados entre usuarios.
-- **COLL-02**: Dataset importado pode ser auditado com autor e comentarios.
-
-## Out of Scope
-
-| Feature | Reason |
-|---------|--------|
-| Backend multiusuario | Escopo local-first nesta iteracao |
-| Ingestao automatica via API externa | Primeiro precisamos fechar bem o contrato de importacao manual |
-| Controle de acesso por perfil | Nao e necessario para a fase atual |
-
-## Traceability
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| HIST-01 | Phase 2 | Complete |
-| HIST-02 | Phase 2 | Complete |
-| HIST-03 | Phase 2 | Complete |
-| CONF-01 | Phase 1 | Complete |
-| CONF-02 | Phase 1 | Complete |
-| CONF-03 | Phase 2 | Complete |
-| DATA-01 | Phase 3 | Complete |
-| DATA-02 | Phase 1 | Complete |
-| DATA-03 | Phase 3 | Complete |
-| DATA-04 | Phase 3 | Complete |
-
-**Coverage:**
-- v1 requirements: 10 total
-- Mapped to phases: 10
-- Unmapped: 0
-
----
-*Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after Phase 3 completion*
+Start the next milestone with `[$gsd-new-milestone](/Users/hrocha/.codex/skills/gsd-new-milestone/SKILL.md)` to define fresh requirements.

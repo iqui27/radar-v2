@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 3 complete; milestone execution finished
-last_updated: "2026-03-31T12:20:00.000Z"
-last_activity: 2026-03-31 -- Phase 03 completed
+status: milestone_complete
+stopped_at: Milestone v1.0 archived
+last_updated: "2026-03-31T12:40:00.000Z"
+last_activity: 2026-03-31 -- Milestone v1.0 archived
 progress:
   total_phases: 3
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** O cliente precisa tomar decisao sobre termos com contexto confiavel, historico legivel e leitura consistente dos dados.
-**Current focus:** Milestone wrap-up
+**Current focus:** Awaiting next milestone
 
 ## Current Position
 
 Phase: All planned phases complete
 Plan: 9 of 9 completed
-Status: Ready for milestone close-out or next milestone
-Last activity: 2026-03-31 - Phase 3 completed
+Status: Milestone archived
+Last activity: 2026-03-31 - v1.0 archived and ready for a new milestone
 
 Progress: [██████████] 100%
 
@@ -79,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-31 07:55
-Stopped at: Phase 3 complete; pronta para auditoria final ou nova milestone
+Stopped at: Milestone v1.0 archived; ready for `gsd-new-milestone`
 Resume file: None

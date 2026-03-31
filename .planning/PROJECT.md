@@ -8,6 +8,12 @@ RADAR v2 e um dashboard de analise de termos de busca para orientar decisao entr
 
 O cliente precisa tomar decisao sobre termos com contexto confiavel, historico legivel e leitura consistente dos dados.
 
+## Current State
+
+Shipped milestone: **v1.0 Foundation** on 2026-03-31.
+
+O produto agora cobre persistencia local-first, historico de consulta/configuracao e troca de origem de dados com importacao CSV-first direto do header. O dashboard ficou operacional para leitura, comparacao e troca de contexto sem backend.
+
 ## Requirements
 
 ### Validated
@@ -28,6 +34,11 @@ O cliente precisa tomar decisao sobre termos com contexto confiavel, historico l
 
 - [ ] Expandir suporte de importacao para `.xlsx` nativo se o produto precisar.
 - [ ] Refinar comparacoes temporais quando houver mais historico de datasets.
+
+## Next Milestone Goals
+
+- Avaliar se a proxima milestone deve aprofundar ingestao de dados (`.xlsx`, auditoria e comparacao entre datasets) ou leitura analitica (comparacoes temporais e colaboracao).
+- Definir novos requisitos em uma fresh milestone em vez de continuar expandindo o escopo de `v1.0`.
 
 ### Out of Scope
 
