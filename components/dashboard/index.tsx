@@ -55,7 +55,11 @@ export function Dashboard() {
   }, [])
 
   const enrichedData = useMemo(() => {
-    return assignClusterIds(enrichTermData(rawData, config))
+    return assignClusterIds(
+      enrichTermData(rawData, config),
+      config.semantic.similarityThreshold,
+      config.semantic.maxClusterTerms
+    )
   }, [config, rawData])
 
   const kpis = useMemo(() => {

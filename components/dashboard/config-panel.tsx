@@ -27,6 +27,7 @@ import {
   type EnrichedTermData,
   type RadarConfig,
 } from '@/lib/radar-data'
+import { Network } from 'lucide-react'
 import {
   createTermMetricDeltaSet,
   createTermMetricSnapshot,
@@ -58,7 +59,7 @@ export function ConfigPanel({
   isDirty,
 }: ConfigPanelProps) {
   const [search, setSearch] = useState('')
-  const [activeSection, setActiveSection] = useState<'weights' | 'thresholds' | 'bands' | 'ctr'>('weights')
+  const [activeSection, setActiveSection] = useState<'weights' | 'thresholds' | 'bands' | 'ctr' | 'semantic'>('weights')
   const [selectedPreviewTerm, setSelectedPreviewTerm] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'term' | 'score' | 'action' | 'position' | 'ctr'>('score')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -142,6 +143,20 @@ export function ConfigPanel({
     onConfigChange({ ...config, expectedCTR: nextExpectedCTR })
   }
 
+  const updateSimilarityThreshold = (value: number) => {
+    onConfigChange({
+      ...config,
+      semantic: { ...config.semantic, similarityThreshold: value }
+    })
+  }
+
+  const updateMaxClusterTerms = (value: number) => {
+    onConfigChange({
+      ...config,
+      semantic: { ...config.semantic, maxClusterTerms: value }
+    })
+  }
+
   const toggleSort = (column: 'term' | 'score' | 'action' | 'position' | 'ctr') => {
     if (sortBy === column) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
@@ -157,6 +172,7 @@ export function ConfigPanel({
     { id: 'thresholds' as const, label: 'Limites', icon: Target, meta: '2 cortes' },
     { id: 'bands' as const, label: 'Bandas', icon: BarChart3, meta: '4 zonas' },
     { id: 'ctr' as const, label: 'CTR', icon: Percent, meta: '20 pos' },
+    { id: 'semantic' as const, label: 'Semantica', icon: Network, meta: 'cluster' },
   ]
 
   return (
@@ -332,6 +348,39 @@ export function ConfigPanel({
                     <span className="text-[10px] text-muted-foreground">%</span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {activeSection === 'semantic' && (
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-border/60 bg-muted/35 p-3 dark:border-white/6 dark:bg-background/30">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Parametros de clusterizacao semantica
+                  </p>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground/80">
+                    Ajustar estes valores recalcula os clusters automaticamente.
+                  </p>
+                </div>
+                <SliderRow
+                  label="Limiar de similaridade"
+                  description="Termos com similaridade acima deste valor entram no mesmo cluster"
+                  value={config.semantic.similarityThreshold}
+                  min={0.1}
+                  max={0.9}
+                  step={0.05}
+                  onChange={updateSimilarityThreshold}
+                  showDecimal
+                />
+                <SliderRow
+                  label="Maximo de termos"
+                  description="Limita quantos termos sao processados (prioriza por impressoes)"
+                  value={config.semantic.maxClusterTerms}
+                  min={50}
+                  max={2000}
+                  step={50}
+                  onChange={updateMaxClusterTerms}
+                  showInteger
+                />
               </div>
             )}
           </CardContent>
@@ -669,6 +718,8 @@ function SliderRow({
   onChange,
   showInteger = false,
   color,
+  description,
+  showDecimal,
 }: {
   label: string
   value: number
@@ -677,16 +728,21 @@ function SliderRow({
   step: number
   onChange: (value: number) => void
   showInteger?: boolean
+  showDecimal?: boolean
   color?: string
+  description?: string
 }) {
   return (
     <div className="rounded-2xl border border-white/6 bg-background/20 px-3 py-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-1.5 flex items-center justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
         <span className="font-mono text-xs font-semibold" style={color ? { color } : undefined}>
-          {showInteger ? value : value.toFixed(2)}
+          {showInteger ? value : showDecimal ? value.toFixed(2) : value}
         </span>
       </div>
+      {description && (
+        <p className="mb-2 text-[10px] leading-relaxed text-muted-foreground/70">{description}</p>
+      )}
       <Slider value={[value]} min={min} max={max} step={step} onValueChange={([next]) => onChange(next)} className="w-full" />
     </div>
   )

@@ -39,6 +39,10 @@ export const radarConfigSchema = z
           }
         }
       }),
+    semantic: z.object({
+      similarityThreshold: z.number().min(0).max(1),
+      maxClusterTerms: z.number().int().min(10).max(5000),
+    }),
   })
   .strict()
 

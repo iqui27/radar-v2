@@ -11,7 +11,11 @@ export const DEFAULT_CONFIG = {
     6: 4.4, 7: 3.0, 8: 2.1, 9: 1.9, 10: 1.6,
     11: 1.0, 12: 0.8, 13: 0.7, 14: 0.6, 15: 0.5,
     16: 0.4, 17: 0.4, 18: 0.3, 19: 0.3, 20: 0.3
-  } as Record<number, number>
+  } as Record<number, number>,
+  semantic: {
+    similarityThreshold: 0.4,
+    maxClusterTerms: 500
+  }
 }
 
 export type RadarConfig = typeof DEFAULT_CONFIG
@@ -62,6 +66,10 @@ type RadarConfigLike = {
   posThresholds: number[]
   scoreBands: number[]
   expectedCTR: Record<number | string, number>
+  semantic?: {
+    similarityThreshold?: number
+    maxClusterTerms?: number
+  }
 }
 
 function normalizeRadarConfigShape(config: RadarConfigLike) {
@@ -93,6 +101,10 @@ function normalizeRadarConfigShape(config: RadarConfigLike) {
       Number(config.scoreBands[2] ?? DEFAULT_CONFIG.scoreBands[2]),
     ] as [number, number, number],
     expectedCTR: normalizedExpectedCTR,
+    semantic: {
+      similarityThreshold: config.semantic?.similarityThreshold ?? DEFAULT_CONFIG.semantic.similarityThreshold,
+      maxClusterTerms: config.semantic?.maxClusterTerms ?? DEFAULT_CONFIG.semantic.maxClusterTerms,
+    },
   }
 }
 
@@ -108,6 +120,10 @@ export function validateRadarConfig(config: RadarConfigLike): RadarConfig {
     expectedCTR: Object.fromEntries(
       Object.entries(parsed.expectedCTR).map(([key, value]) => [Number(key), value])
     ) as RadarConfig['expectedCTR'],
+    semantic: {
+      similarityThreshold: parsed.semantic.similarityThreshold,
+      maxClusterTerms: parsed.semantic.maxClusterTerms,
+    },
   }
 }
 
@@ -129,6 +145,7 @@ export function sanitizeRadarConfig(config: Partial<RadarConfigLike> | null | un
         ...DEFAULT_CONFIG.expectedCTR,
         ...(config.expectedCTR ?? {}),
       },
+      semantic: config.semantic ?? DEFAULT_CONFIG.semantic,
     })
   } catch {
     return DEFAULT_CONFIG
@@ -345,13 +362,22 @@ export function enrichTermData(data: RawTermData[], config: RadarConfig = DEFAUL
 // Assign cluster IDs to terms based on semantic similarity
 export function assignClusterIds(
   terms: EnrichedTermData[],
-  similarityThreshold: number = 0.4
+  similarityThreshold: number = 0.4,
+  maxClusterTerms: number = 500
 ): EnrichedTermData[] {
   const result = [...terms]
   const visited = new Set<number>()
   let clusterId = 1
   
+  // Limit to maxClusterTerms (prioritize by impressions)
+  const termsToCluster = [...result]
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, maxClusterTerms)
+  
+  const indicesToCluster = new Set(termsToCluster.map(t => result.indexOf(t)))
+  
   for (let i = 0; i < result.length; i++) {
+    if (!indicesToCluster.has(i)) continue
     if (visited.has(i)) continue
     
     // Start a new cluster with this term
@@ -360,6 +386,7 @@ export function assignClusterIds(
     
     // Find all semantically similar terms
     for (let j = i + 1; j < result.length; j++) {
+      if (!indicesToCluster.has(j)) continue
       if (visited.has(j)) continue
       
       const similarity = calculateSemanticSimilarity(result[i].term, result[j].term)

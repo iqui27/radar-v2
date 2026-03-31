@@ -23,7 +23,6 @@ interface ScatterChartProps {
 
 const MAX_SCATTER_TERMS = 240
 
-// Generate palette of 12 distinct colors for clusters
 const CLUSTER_COLORS = [
   '#6366F1', // indigo
   '#10B981', // emerald
@@ -40,8 +39,17 @@ const CLUSTER_COLORS = [
 ]
 
 function getClusterColor(clusterId: number | undefined): string {
-  if (clusterId === undefined) return '#64748B' // slate for unclustered
+  if (clusterId === undefined) return '#64748B'
   return CLUSTER_COLORS[(clusterId - 1) % CLUSTER_COLORS.length]
+}
+
+interface ClusterInfo {
+  clusterId: number
+  termCount: number
+  topTerm: string
+  avgScore: number
+  avgCTR: number
+  totalImpressions: number
 }
 
 export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
@@ -62,16 +70,61 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
     return sampled
   }, [data, highlightTerm])
 
-  // Get unique clusters for legend
-  const uniqueClusters = useMemo(() => {
-    const clusters = new Set<number>()
+  const clusterStats = useMemo(() => {
+    const stats = new Map<number, ClusterInfo>()
+    const unclustered: ClusterInfo = {
+      clusterId: 0,
+      termCount: 0,
+      topTerm: '-',
+      avgScore: 0,
+      avgCTR: 0,
+      totalImpressions: 0
+    }
+
     sampledTerms.forEach(term => {
-      if (term.clusterId !== undefined) {
-        clusters.add(term.clusterId)
+      if (term.clusterId === undefined) {
+        unclustered.termCount++
+        unclustered.totalImpressions += term.impressions
+        return
+      }
+
+      if (!stats.has(term.clusterId)) {
+        stats.set(term.clusterId, {
+          clusterId: term.clusterId,
+          termCount: 0,
+          topTerm: term.term,
+          avgScore: 0,
+          avgCTR: 0,
+          totalImpressions: 0
+        })
+      }
+
+      const cluster = stats.get(term.clusterId)!
+      cluster.termCount++
+      cluster.totalImpressions += term.impressions
+      cluster.avgScore += term.score
+      cluster.avgCTR += term.ctr
+      if (term.impressions > (data.find(t => t.term === cluster.topTerm)?.impressions ?? 0)) {
+        cluster.topTerm = term.term
       }
     })
-    return Array.from(clusters).sort((a, b) => a - b)
-  }, [sampledTerms])
+
+    stats.forEach(cluster => {
+      cluster.avgScore /= cluster.termCount
+      cluster.avgCTR /= cluster.termCount
+    })
+
+    return { stats, unclustered }
+  }, [sampledTerms, data])
+
+  const uniqueClusters = useMemo(() => {
+    return Array.from(clusterStats.stats.keys()).sort((a, b) => a - b)
+  }, [clusterStats])
+
+  const highlightedTermData = useMemo(() => {
+    if (!highlightTerm) return null
+    return sampledTerms.find(t => t.term === highlightTerm)
+  }, [sampledTerms, highlightTerm])
 
   const chartData = useMemo(
     () =>
@@ -115,21 +168,57 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
             <div className="rounded-full border border-border/60 bg-background/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground dark:border-border/50 dark:bg-background/60">
               Universo total {data.length}
             </div>
-            {uniqueClusters.slice(0, 6).map((clusterId) => (
-              <div key={clusterId} className="flex items-center gap-1.5">
+            {highlightedTermData?.clusterId !== undefined ? (
+              <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1">
                 <div 
                   className="h-2 w-2 rounded-full" 
-                  style={{ backgroundColor: getClusterColor(clusterId) }}
+                  style={{ backgroundColor: getClusterColor(highlightedTermData.clusterId) }}
                 />
+                <span className="text-[10px] font-medium text-primary">
+                  Cluster {highlightedTermData.clusterId}
+                </span>
                 <span className="text-[10px] text-muted-foreground">
-                  Cluster {clusterId}
+                  ({clusterStats.stats.get(highlightedTermData.clusterId)?.termCount ?? 0} termos)
+                </span>
+                <span className="text-[10px] text-muted-foreground/70">
+                  · Top: {clusterStats.stats.get(highlightedTermData.clusterId)?.topTerm}
                 </span>
               </div>
-            ))}
-            {uniqueClusters.length > 6 && (
-              <span className="text-[10px] text-muted-foreground">
-                +{uniqueClusters.length - 6} clusters
-              </span>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600" />
+                  <span className="text-[10px] text-muted-foreground">
+                    All ({uniqueClusters.length} clusters)
+                  </span>
+                </div>
+                {uniqueClusters.slice(0, 5).map((clusterId) => {
+                  const stat = clusterStats.stats.get(clusterId)
+                  return (
+                    <div key={clusterId} className="group relative flex items-center gap-1.5">
+                      <div 
+                        className="h-2 w-2 rounded-full cursor-pointer" 
+                        style={{ backgroundColor: getClusterColor(clusterId) }}
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        C{clusterId} ({stat?.termCount ?? 0})
+                      </span>
+                      <div className="absolute bottom-full left-1/2 z-50 mb-2 hidden w-max -translate-x-1/2 flex-col gap-1 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-xl group-hover:flex">
+                        <p className="text-[10px] font-semibold text-foreground">Cluster {clusterId}</p>
+                        <p className="text-[10px] text-muted-foreground">Termos: {stat?.termCount}</p>
+                        <p className="text-[10px] text-muted-foreground">Top: {stat?.topTerm}</p>
+                        <p className="text-[10px] text-muted-foreground">Score médio: {stat?.avgScore.toFixed(3)}</p>
+                        <p className="text-[10px] text-muted-foreground">CTR médio: {stat?.avgCTR.toFixed(2)}%</p>
+                      </div>
+                    </div>
+                  )
+                })}
+                {uniqueClusters.length > 5 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    +{uniqueClusters.length - 5}
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
