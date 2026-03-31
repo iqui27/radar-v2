@@ -97,6 +97,16 @@ export function appendRadarConfigSnapshot(
   }
 }
 
+export function removeRadarConfigSnapshot(
+  state: RadarPersistenceState,
+  snapshotId: string
+): RadarPersistenceState {
+  return {
+    ...state,
+    configSnapshots: state.configSnapshots.filter((snapshot) => snapshot.id !== snapshotId),
+  }
+}
+
 export function createRadarSearchHistoryEntry(input: {
   query: string
   selectedTerm?: string | null

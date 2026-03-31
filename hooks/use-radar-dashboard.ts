@@ -19,9 +19,11 @@ import {
 import {
   appendRadarConfigSnapshot,
   appendRadarSearchHistoryEntry,
+  createEmptyRadarPersistenceState,
   createRadarConfigSnapshot,
   createRadarSearchHistoryEntry,
   readRadarPersistenceState,
+  removeRadarConfigSnapshot,
   writeRadarPersistenceState,
 } from '@/lib/radar-persistence'
 import {
@@ -44,14 +46,10 @@ export function useRadarDashboardState(
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null)
   const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null)
   const [persistenceState, setPersistenceState] = useState(() =>
-    bootstrapRadarPersistenceState(readRadarPersistenceState())
+    bootstrapRadarPersistenceState(createEmptyRadarPersistenceState())
   )
-  const [config, setConfig] = useState<RadarConfig>(() =>
-    sanitizeRadarConfig(readRadarPersistenceState().currentConfig ?? DEFAULT_CONFIG)
-  )
-  const [savedConfig, setSavedConfig] = useState<RadarConfig>(() =>
-    sanitizeRadarConfig(readRadarPersistenceState().currentConfig ?? DEFAULT_CONFIG)
-  )
+  const [config, setConfig] = useState<RadarConfig>(() => sanitizeRadarConfig(DEFAULT_CONFIG))
+  const [savedConfig, setSavedConfig] = useState<RadarConfig>(() => sanitizeRadarConfig(DEFAULT_CONFIG))
 
   const activeDataSource = useMemo(
     () => getActiveRadarDataSource(persistenceState),
@@ -258,6 +256,14 @@ export function useRadarDashboardState(
     [persistState, persistenceState]
   )
 
+  const deleteConfigSnapshot = useCallback(
+    (snapshotId: string) => {
+      const nextState = removeRadarConfigSnapshot(persistenceState, snapshotId)
+      persistState(nextState)
+    },
+    [persistState, persistenceState]
+  )
+
   const selectedTermBaseline = useMemo(() => {
     if (!selectedTerm) {
       return null
@@ -310,6 +316,7 @@ export function useRadarDashboardState(
     recordSelection,
     resetConfig,
     restoreConfigSnapshot,
+    deleteConfigSnapshot,
     restoreSearchHistoryEntry,
     saveConfig,
     updateConfig,

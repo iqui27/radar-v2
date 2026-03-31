@@ -42,6 +42,7 @@ export function Dashboard() {
     restoreSearchHistoryEntry,
     saveConfig,
     updateConfig,
+    deleteConfigSnapshot,
   } = useRadarDashboardState()
 
   useEffect(() => {
@@ -97,7 +98,7 @@ export function Dashboard() {
   }, [enrichedData, selectedTerm])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="radar-scale-115 min-h-screen bg-background">
       <Header
         theme={theme}
         dateRange={dateRange}
@@ -111,33 +112,33 @@ export function Dashboard() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
         <div className="relative z-10 -mt-4">
-          <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+          <div className="mx-auto w-full max-w-[1720px] px-5 sm:px-7 lg:px-10 xl:px-12 2xl:px-14">
             <div className="overflow-x-auto pb-2">
-              <div className="inline-flex rounded-[24px] border border-white/6 bg-card/72 p-1.5 shadow-[0_18px_60px_-38px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+              <div className="radar-toolbar-surface inline-flex rounded-[24px] p-1.5">
                 <TabsList className="h-auto gap-1 rounded-[20px] border-0 bg-transparent p-0">
                   <TabsTrigger
                     value="panorama"
-                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 data-[state=active]:border-white/8 data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
+                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:bg-black/[0.035] hover:text-foreground data-[state=active]:border-black/8 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.18)] dark:hover:bg-background/45 dark:data-[state=active]:border-white/8 dark:data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] dark:data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-background/35 text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-black/[0.035] text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary dark:bg-background/35">
                       <LayoutGrid className="h-3.5 w-3.5" />
                     </span>
                     Panorama
                   </TabsTrigger>
                   <TabsTrigger
                     value="consulta"
-                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 data-[state=active]:border-white/8 data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
+                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:bg-black/[0.035] hover:text-foreground data-[state=active]:border-black/8 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.18)] dark:hover:bg-background/45 dark:data-[state=active]:border-white/8 dark:data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] dark:data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-background/35 text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-black/[0.035] text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary dark:bg-background/35">
                       <Search className="h-3.5 w-3.5" />
                     </span>
                     Consulta
                   </TabsTrigger>
                   <TabsTrigger
                     value="configuracao"
-                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 data-[state=active]:border-white/8 data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
+                    className="group relative gap-2 whitespace-nowrap rounded-[18px] border border-transparent px-4 py-3 text-xs font-medium text-muted-foreground transition-[background-color,border-color,color,box-shadow,transform] duration-200 hover:bg-black/[0.035] hover:text-foreground data-[state=active]:border-black/8 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-[0_10px_24px_-18px_rgba(15,23,42,0.18)] dark:hover:bg-background/45 dark:data-[state=active]:border-white/8 dark:data-[state=active]:bg-[linear-gradient(180deg,rgba(18,20,30,0.98),rgba(13,14,22,0.92))] dark:data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_10px_24px_-18px_rgba(0,0,0,0.9)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-background/35 text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-transparent bg-black/[0.035] text-muted-foreground transition-[background-color,color,border-color] duration-200 group-data-[state=active]:border-primary/15 group-data-[state=active]:bg-primary/12 group-data-[state=active]:text-primary dark:bg-background/35">
                       <Settings className="h-3.5 w-3.5" />
                     </span>
                     Configuracao
@@ -148,7 +149,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        <main className="mx-auto w-full max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <main className="mx-auto w-full max-w-[1720px] px-5 py-5 sm:px-7 lg:px-10 xl:px-12 2xl:px-14">
           <TabsContent value="panorama" className="mt-0 min-w-0 space-y-6">
             {/* KPIs */}
             <KPICards {...kpis} />
@@ -222,6 +223,7 @@ export function Dashboard() {
               data={enrichedData}
               onConfigChange={updateConfig}
               onRestoreSnapshot={restoreConfigSnapshot}
+              onDeleteSnapshot={deleteConfigSnapshot}
               onSave={() => saveConfig(selectedEnrichedTerm)}
               onReset={resetConfig}
               isDirty={isDirty}

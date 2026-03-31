@@ -142,7 +142,7 @@ export function SearchPanel({
                       <button
                         type="button"
                         onClick={() => onHistorySelect(entry.id)}
-                        className="inline-flex max-w-[180px] items-center rounded-full border border-border/40 bg-card/55 px-2.5 py-1 text-[11px] text-foreground/78 transition-[border-color,background-color,color] hover:border-primary/25 hover:bg-card hover:text-foreground"
+                        className="inline-flex max-w-[180px] items-center rounded-full border border-border/50 bg-card px-2.5 py-1 text-[11px] text-foreground/85 transition-[border-color,background-color,color] hover:border-primary/25 hover:bg-background hover:text-foreground dark:bg-card/55 dark:text-foreground/78 dark:hover:bg-card"
                       >
                         <span className="truncate">{entry.summaryLabel}</span>
                       </button>
@@ -150,7 +150,7 @@ export function SearchPanel({
                     <TooltipContent
                       side="bottom"
                       sideOffset={8}
-                      className="max-w-[260px] rounded-xl border border-border/50 bg-card px-3 py-2 text-left text-foreground shadow-xl"
+                      className="max-w-[260px] rounded-xl border border-border/60 bg-card px-3 py-2 text-left text-foreground shadow-xl"
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-3">
@@ -199,7 +199,7 @@ export function SearchPanel({
                 Termo isolado ou cluster relacionado
               </p>
             </div>
-            <div className="inline-flex rounded-xl border border-border/50 bg-card/70 p-1 shadow-sm backdrop-blur-sm">
+            <div className="inline-flex rounded-xl border border-border/60 bg-card p-1 shadow-sm backdrop-blur-sm dark:bg-card/70">
               <button
                 type="button"
                 onClick={() => setMetricsView('individual')}
@@ -249,7 +249,7 @@ export function SearchPanel({
 
       {/* Empty State */}
       {!selectedTerm && (
-        <Card className="border-border/50 border-dashed bg-gradient-to-br from-card to-muted/20">
+        <Card className="border-border/60 border-dashed bg-gradient-to-br from-card to-muted/35 dark:to-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="relative">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">

@@ -115,11 +115,11 @@ export function Header({
   return (
     <header className="relative overflow-hidden border-b border-border/30 bg-background py-5">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-      <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-        <div className="flex flex-col gap-4 rounded-[28px] border border-white/6 bg-card/55 px-4 py-4 shadow-[0_24px_80px_-38px_rgba(0,0,0,0.9)] backdrop-blur-xl md:flex-row md:items-center md:justify-between md:px-5">
+      <div className="mx-auto w-full max-w-[1720px] px-5 sm:px-7 lg:px-10 xl:px-12 2xl:px-14">
+        <div className="radar-shell-surface flex flex-col gap-4 rounded-[28px] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5 lg:px-6">
           <div className="flex min-w-0 items-center gap-4">
             <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/18 via-primary/10 to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="absolute inset-[6px] rounded-[14px] border border-white/6" />
+              <div className="absolute inset-[6px] rounded-[14px] border border-black/8 dark:border-white/6" />
               <Radar className="relative z-10 h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
@@ -127,7 +127,7 @@ export function Header({
                 <h1 className="text-[1.75rem] font-semibold tracking-[-0.04em] text-foreground">
                   RADAR
                 </h1>
-                <span className="rounded-full border border-white/8 bg-background/45 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                <span className="radar-chip rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
                   Search Intelligence
                 </span>
               </div>
@@ -137,7 +137,7 @@ export function Header({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 self-start rounded-[22px] border border-white/6 bg-background/35 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:self-auto">
+          <div className="radar-toolbar-surface flex flex-wrap items-center gap-1.5 self-start rounded-[20px] p-1 md:self-auto">
             <input
               ref={fileInputRef}
               type="file"
@@ -150,24 +150,24 @@ export function Header({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="group flex min-w-[220px] items-center gap-3 rounded-[18px] border border-transparent bg-transparent px-3 py-2 text-left transition-[border-color,background-color,transform] duration-200 hover:border-white/6 hover:bg-background/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="group flex min-w-[196px] items-center gap-2.5 rounded-[16px] border border-transparent bg-transparent px-2.5 py-1.5 text-left transition-[border-color,background-color,transform] duration-200 hover:border-black/8 hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:hover:border-white/6 dark:hover:bg-background/45"
                   aria-label={`Origem ativa: ${activeDataSource.label}`}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/15">
-                    <Database className="h-4 w-4" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/15">
+                    <Database className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                    <div className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       Origem ativa
                     </div>
-                    <div className="mt-1 truncate text-sm font-semibold tracking-tight text-foreground">
+                    <div className="mt-0.5 truncate text-[13px] font-semibold tracking-tight text-foreground">
                       {activeDataSource.label}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
                       {activeDataSource.recordCount} termos • {formatSourceDate(activeDataSource.createdAt)}
                     </div>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </button>
               </PopoverTrigger>
               <PopoverContent
@@ -257,21 +257,21 @@ export function Header({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="group flex items-center gap-3 rounded-[18px] border border-transparent bg-transparent px-3 py-2 text-left transition-[border-color,background-color,transform] duration-200 hover:border-white/6 hover:bg-background/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="group flex items-center gap-2.5 rounded-[16px] border border-transparent bg-transparent px-2.5 py-1.5 text-left transition-[border-color,background-color,transform] duration-200 hover:border-black/8 hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:hover:border-white/6 dark:hover:bg-background/45"
                   aria-label={`Selecionar periodo de analise. Atual: ${selectedRange.label}`}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/15">
-                    <CalendarRange className="h-4 w-4" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/15">
+                    <CalendarRange className="h-3.5 w-3.5" />
                   </div>
                   <div className="hidden min-w-0 sm:block">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                    <div className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       Periodo
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold tracking-tight text-foreground">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[13px] font-semibold tracking-tight text-foreground">
                         {selectedRange.label}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">{periodLabel}</span>
+                      <span className="text-[10px] text-muted-foreground">{periodLabel}</span>
                     </div>
                   </div>
                   <div className="sm:hidden">
@@ -279,7 +279,7 @@ export function Header({
                       {selectedRange.shortLabel}
                     </span>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-[320px] rounded-2xl border-border/50 bg-popover/95 p-2 shadow-2xl backdrop-blur-xl">
@@ -335,7 +335,7 @@ export function Header({
               variant="ghost"
               size="icon"
               onClick={onThemeToggle}
-              className="h-10 w-10 rounded-[18px] border border-transparent bg-transparent text-muted-foreground transition-[background-color,border-color,color,transform] duration-200 hover:border-white/6 hover:bg-background/45 hover:text-foreground"
+              className="h-10 w-10 rounded-[18px] border border-transparent bg-transparent text-muted-foreground transition-[background-color,border-color,color,transform] duration-200 hover:border-black/8 hover:bg-black/[0.035] hover:text-foreground dark:hover:border-white/6 dark:hover:bg-background/45"
               aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

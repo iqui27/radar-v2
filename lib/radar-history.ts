@@ -23,6 +23,7 @@ export interface ConfigSnapshotListItem {
   createdAt: string
   selectedTerm: string | null
   dataSourceId: string | null
+  config: RadarConfig
   termSnapshot: RadarTermMetricSnapshot | null
   isCurrent: boolean
   relativeLabel: string
@@ -50,6 +51,19 @@ export interface TermMetricBaseline {
   baseline: RadarTermMetricSnapshot
   comparisonLabel: string
   deltas: TermMetricDeltaSet
+}
+
+export function createTermMetricDeltaSet(
+  current: RadarTermMetricSnapshot,
+  baseline: RadarTermMetricSnapshot
+): TermMetricDeltaSet {
+  return {
+    score: createMetricDelta(current.score, baseline.score),
+    position: createMetricDelta(current.position, baseline.position, true),
+    ctr: createMetricDelta(current.ctr, baseline.ctr),
+    clicks: createMetricDelta(current.clicks, baseline.clicks),
+    impressions: createMetricDelta(current.impressions, baseline.impressions),
+  }
 }
 
 function toDateValue(value: string): number {
@@ -179,6 +193,7 @@ export function getConfigSnapshotHistory(
       createdAt: snapshot.createdAt,
       selectedTerm: snapshot.selectedTerm,
       dataSourceId: snapshot.dataSourceId,
+      config: snapshot.config as RadarConfig,
       termSnapshot: snapshot.termSnapshot,
       isCurrent: matchesCurrent,
       relativeLabel: formatRelativeTimestamp(snapshot.createdAt),
@@ -211,13 +226,7 @@ export function resolveTermMetricBaseline(input: {
       sourceLabel: 'Comparado com a selecao anterior do mesmo termo',
       baseline: priorSelection.termSnapshot,
       comparisonLabel: formatRelativeTimestamp(priorSelection.createdAt),
-      deltas: {
-        score: createMetricDelta(currentSnapshot.score, priorSelection.termSnapshot.score),
-        position: createMetricDelta(currentSnapshot.position, priorSelection.termSnapshot.position, true),
-        ctr: createMetricDelta(currentSnapshot.ctr, priorSelection.termSnapshot.ctr),
-        clicks: createMetricDelta(currentSnapshot.clicks, priorSelection.termSnapshot.clicks),
-        impressions: createMetricDelta(currentSnapshot.impressions, priorSelection.termSnapshot.impressions),
-      },
+      deltas: createTermMetricDeltaSet(currentSnapshot, priorSelection.termSnapshot),
     }
   }
 
@@ -244,12 +253,6 @@ export function resolveTermMetricBaseline(input: {
     sourceLabel: 'Comparado com o ultimo snapshot de configuracao do termo',
     baseline: configBaseline.termSnapshot,
     comparisonLabel: formatRelativeTimestamp(configBaseline.createdAt),
-    deltas: {
-      score: createMetricDelta(currentSnapshot.score, configBaseline.termSnapshot.score),
-      position: createMetricDelta(currentSnapshot.position, configBaseline.termSnapshot.position, true),
-      ctr: createMetricDelta(currentSnapshot.ctr, configBaseline.termSnapshot.ctr),
-      clicks: createMetricDelta(currentSnapshot.clicks, configBaseline.termSnapshot.clicks),
-      impressions: createMetricDelta(currentSnapshot.impressions, configBaseline.termSnapshot.impressions),
-    },
+    deltas: createTermMetricDeltaSet(currentSnapshot, configBaseline.termSnapshot),
   }
 }
