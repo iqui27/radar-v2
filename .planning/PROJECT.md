@@ -16,6 +16,7 @@ O cliente precisa tomar decisao sobre termos com contexto confiavel, historico l
 - ✓ Consulta por termo com card analitico, cluster relacionado e leitura individual/agregada.
 - ✓ Ajuste manual dos parametros do score RADAR no painel de configuracao.
 - ✓ Filtro global de periodo e navegacao principal do dashboard.
+- ✓ Persistencia local-first para configuracao atual, snapshots e registry de origem de dados — Phase 1.
 
 ### Active
 
@@ -49,8 +50,9 @@ O projeto ja possui uma base funcional em `Next.js`, `React 19`, `Tailwind` e `R
 |----------|-----------|---------|
 | Manter a base como dashboard client-side | Permite iteracao rapida sobre UX e dominio antes de backend | ✓ Good |
 | Centralizar score e enriquecimento em `lib/radar-data.ts` | Facilita consistencia entre cards, tabela e graficos | ✓ Good |
-| Tratar persistencia nova como local-first | Resolve a pendencia atual sem aumentar superficie tecnica cedo demais | — Pending |
-| Separar origem de dados em registry/versionamento explicito | Evita acoplamento a um unico dataset importado | — Pending |
+| Tratar persistencia nova como local-first | Resolve a pendencia atual sem aumentar superficie tecnica cedo demais | ✓ Good |
+| Separar origem de dados em registry/versionamento explicito | Evita acoplamento a um unico dataset importado | ✓ Good |
+| Centralizar o shell em um hook de estado local-first | Reduz drift entre config, selecao e origem ativa | ✓ Good |
 
 ---
-*Last updated: 2026-03-31 after GSD project initialization*
+*Last updated: 2026-03-31 after Phase 1 completion*
