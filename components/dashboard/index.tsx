@@ -24,14 +24,19 @@ export function Dashboard() {
   const {
     activeDataSource,
     config,
+    configHistory,
     dateRange,
     isDirty,
     rawData,
+    searchHistoryEntries,
     selectedTerm,
+    selectedTermBaseline,
     setDateRange,
     setSelectedTerm,
     recordSelection,
     resetConfig,
+    restoreConfigSnapshot,
+    restoreSearchHistoryEntry,
     saveConfig,
     updateConfig,
   } = useRadarDashboardState()
@@ -69,13 +74,16 @@ export function Dashboard() {
     setTheme((t) => (t === 'light' ? 'dark' : 'light'))
   }, [])
 
-  const handleTermSelect = useCallback((term: string) => {
-    const found = enrichedData.find((d) => d.term === term)
-    if (found) {
-      recordSelection(found.term)
-      setActiveTab('consulta')
-    }
-  }, [enrichedData, recordSelection])
+  const handleTermSelect = useCallback(
+    (term: string, query?: string) => {
+      const found = enrichedData.find((d) => d.term === term)
+      if (found) {
+        recordSelection(found, query)
+        setActiveTab('consulta')
+      }
+    },
+    [enrichedData, recordSelection]
+  )
 
   const selectedEnrichedTerm = useMemo<EnrichedTermData | null>(() => {
     if (!selectedTerm) {
@@ -191,19 +199,24 @@ export function Dashboard() {
           <TabsContent value="consulta" className="mt-0">
             <SearchPanel
               data={enrichedData}
-              onTermSelect={(term) => {
-                recordSelection(term.term, term.term)
+              historyEntries={searchHistoryEntries}
+              onHistorySelect={restoreSearchHistoryEntry}
+              onTermSelect={(term, query) => {
+                recordSelection(term, query)
               }}
               selectedTerm={selectedEnrichedTerm}
+              selectedTermBaseline={selectedTermBaseline}
             />
           </TabsContent>
 
           <TabsContent value="configuracao" className="mt-0">
             <ConfigPanel
               config={config}
+              configHistory={configHistory}
               data={enrichedData}
               onConfigChange={updateConfig}
-              onSave={saveConfig}
+              onRestoreSnapshot={restoreConfigSnapshot}
+              onSave={() => saveConfig(selectedEnrichedTerm)}
               onReset={resetConfig}
               isDirty={isDirty}
             />

@@ -7,7 +7,7 @@ O proximo milestone do RADAR v2 transforma o dashboard atual em uma ferramenta c
 ## Phases
 
 - [x] **Phase 1: Persistence and Data Registry** - Criar a base confiavel para snapshots de configuracao, historico e versoes de dataset. (completed 2026-03-31)
-- [ ] **Phase 2: Search and Config History UX** - Exibir historicos e deltas de metricas na consulta e na configuracao.
+- [x] **Phase 2: Search and Config History UX** - Exibir historicos e deltas de metricas na consulta e na configuracao. (completed 2026-03-31)
 - [ ] **Phase 3: Dataset Import and Source Switching** - Importar planilhas, gerar novas versoes e trocar a origem ativa no dashboard.
 
 ## Phase Details
@@ -40,9 +40,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Construir componentes de historico de busca e selecao de termos.
-- [ ] 02-02: Construir timeline de snapshots de configuracao com restore.
-- [ ] 02-03: Exibir deltas de metricas por termo usando snapshots historicos.
+- [x] 02-01: Construir componentes de historico de busca e selecao de termos.
+- [x] 02-02: Construir timeline de snapshots de configuracao com restore.
+- [x] 02-03: Exibir deltas de metricas por termo usando snapshots historicos.
 
 ### Phase 3: Dataset Import and Source Switching
 **Goal**: Permitir importacao de planilhas como novas versoes de dados e alternar a origem ativa em todo o dashboard.
@@ -65,5 +65,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Persistence and Data Registry | 3/3 | Complete | 2026-03-31 |
-| 2. Search and Config History UX | 0/3 | Not started | - |
+| 2. Search and Config History UX | 3/3 | Complete | 2026-03-31 |
 | 3. Dataset Import and Source Switching | 0/3 | Not started | - |

@@ -3,11 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DEFAULT_CONFIG,
+  enrichTermData,
   filterRadarDataByDateRange,
   sanitizeRadarConfig,
   type DashboardDateRangeKey,
+  type EnrichedTermData,
   type RadarConfig,
 } from '@/lib/radar-data'
+import {
+  createTermMetricSnapshot,
+  getConfigSnapshotHistory,
+  getRecentSearchHistory,
+  resolveTermMetricBaseline,
+} from '@/lib/radar-history'
 import {
   appendRadarConfigSnapshot,
   appendRadarSearchHistoryEntry,
@@ -32,6 +40,7 @@ export function useRadarDashboardState(
 ) {
   const [dateRange, setDateRange] = useState<DashboardDateRangeKey>(options.initialDateRange ?? '90d')
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null)
+  const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null)
   const [persistenceState, setPersistenceState] = useState(() =>
     bootstrapRadarPersistenceState(readRadarPersistenceState())
   )
@@ -57,6 +66,16 @@ export function useRadarDashboardState(
     [config, savedConfig]
   )
 
+  const recentSearchHistory = useMemo(
+    () => getRecentSearchHistory(persistenceState.searchHistory),
+    [persistenceState.searchHistory]
+  )
+
+  const configHistory = useMemo(
+    () => getConfigSnapshotHistory(persistenceState.configSnapshots, savedConfig),
+    [persistenceState.configSnapshots, savedConfig]
+  )
+
   useEffect(() => {
     const nextState = bootstrapRadarPersistenceState(readRadarPersistenceState())
     const nextConfig = sanitizeRadarConfig(nextState.currentConfig ?? DEFAULT_CONFIG)
@@ -77,13 +96,14 @@ export function useRadarDashboardState(
     setConfig(sanitizeRadarConfig(nextConfig))
   }, [])
 
-  const saveConfig = useCallback(() => {
+  const saveConfig = useCallback((selectedTermSnapshot?: EnrichedTermData | null) => {
     const normalizedConfig = sanitizeRadarConfig(config)
     const snapshot = createRadarConfigSnapshot({
       config: normalizedConfig,
       selectedTerm,
       dataSourceId: activeDataSource.id,
       label: `Configuracao ${new Date().toLocaleString('pt-BR')}`,
+      termSnapshot: selectedTermSnapshot ? createTermMetricSnapshot(selectedTermSnapshot) : null,
     })
 
     const nextState = appendRadarConfigSnapshot(
@@ -121,39 +141,130 @@ export function useRadarDashboardState(
   )
 
   const recordSelection = useCallback(
-    (term: string, query?: string) => {
+    (term: EnrichedTermData, query?: string) => {
+      const nextEntry = createRadarSearchHistoryEntry({
+        query: query?.trim() || term.term,
+        selectedTerm: term.term,
+        dataSourceId: activeDataSource.id,
+        interaction: 'selection',
+        termSnapshot: createTermMetricSnapshot(term),
+      })
+
       const nextState = appendRadarSearchHistoryEntry(
         persistenceState,
-        createRadarSearchHistoryEntry({
-          query: query ?? term,
-          selectedTerm: term,
-          dataSourceId: activeDataSource.id,
-          interaction: 'selection',
-        })
+        nextEntry
       )
 
       persistState(nextState)
-      setSelectedTerm(term)
+      setSelectedTerm(term.term)
+      setSelectedHistoryEntryId(nextEntry.id)
     },
     [activeDataSource.id, persistState, persistenceState]
   )
 
+  const restoreSearchHistoryEntry = useCallback(
+    (entryId: string) => {
+      const targetEntry = persistenceState.searchHistory.find((entry) => entry.id === entryId)
+
+      if (!targetEntry) {
+        return
+      }
+
+      const nextState =
+        targetEntry.dataSourceId !== persistenceState.activeDataSourceId
+          ? setActiveRadarDataSource(persistenceState, targetEntry.dataSourceId)
+          : persistenceState
+
+      if (nextState !== persistenceState) {
+        persistState(nextState)
+      }
+
+      setSelectedTerm(targetEntry.selectedTerm)
+      setSelectedHistoryEntryId(targetEntry.id)
+    },
+    [persistState, persistenceState]
+  )
+
+  const restoreConfigSnapshot = useCallback(
+    (snapshotId: string) => {
+      const targetSnapshot = persistenceState.configSnapshots.find((snapshot) => snapshot.id === snapshotId)
+
+      if (!targetSnapshot) {
+        return
+      }
+
+      const normalizedConfig = sanitizeRadarConfig(targetSnapshot.config)
+      const nextStateBase =
+        targetSnapshot.dataSourceId && targetSnapshot.dataSourceId !== persistenceState.activeDataSourceId
+          ? setActiveRadarDataSource(persistenceState, targetSnapshot.dataSourceId)
+          : persistenceState
+
+      const nextState = {
+        ...nextStateBase,
+        currentConfig: normalizedConfig,
+      }
+
+      persistState(nextState)
+      setConfig(normalizedConfig)
+      setSavedConfig(normalizedConfig)
+      setSelectedTerm(targetSnapshot.selectedTerm ?? null)
+      setSelectedHistoryEntryId(null)
+    },
+    [persistState, persistenceState]
+  )
+
+  const selectedTermBaseline = useMemo(() => {
+    if (!selectedTerm) {
+      return null
+    }
+
+    const selectedEntry = rawData.find((entry) => entry.term === selectedTerm)
+
+    if (!selectedEntry) {
+      return null
+    }
+
+    const enrichedSelection = enrichTermData([selectedEntry], config)[0]
+
+    return resolveTermMetricBaseline({
+      term: enrichedSelection,
+      searchHistory: persistenceState.searchHistory,
+      configSnapshots: persistenceState.configSnapshots,
+      currentConfig: config,
+      dataSourceId: activeDataSource.id,
+      currentHistoryEntryId: selectedHistoryEntryId,
+    })
+  }, [
+    activeDataSource.id,
+    config,
+    persistenceState.configSnapshots,
+    persistenceState.searchHistory,
+    rawData,
+    selectedHistoryEntryId,
+    selectedTerm,
+  ])
+
   return {
     activeDataSource,
     config,
+    configHistory,
     configSnapshots: persistenceState.configSnapshots,
     dataSources: persistenceState.dataSources,
     dateRange,
     isDirty,
     rawData,
     savedConfig,
+    searchHistoryEntries: recentSearchHistory,
     searchHistory: persistenceState.searchHistory,
     selectedTerm,
+    selectedTermBaseline,
     setDateRange,
     setSelectedTerm,
     changeActiveDataSource,
     recordSelection,
     resetConfig,
+    restoreConfigSnapshot,
+    restoreSearchHistoryEntry,
     saveConfig,
     updateConfig,
   }

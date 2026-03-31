@@ -50,6 +50,17 @@ export const rawTermDataSchema = z.object({
   position: z.number().min(1).max(100),
 })
 
+export const radarTermMetricSnapshotSchema = z.object({
+  term: z.string().min(1),
+  score: z.number().min(0).max(1),
+  position: z.number().min(1).max(100),
+  ctr: z.number().min(0).max(100),
+  clicks: z.number().min(0),
+  impressions: z.number().min(0),
+  expCTR: z.number().min(0).max(100),
+  actionLabel: z.string().min(1),
+})
+
 export const radarSearchHistoryEntrySchema = z.object({
   id: z.string().min(1),
   query: z.string().min(1),
@@ -57,6 +68,7 @@ export const radarSearchHistoryEntrySchema = z.object({
   dataSourceId: z.string().min(1),
   createdAt: z.string().datetime(),
   interaction: z.enum(['query', 'selection']).default('selection'),
+  termSnapshot: radarTermMetricSnapshotSchema.nullable().default(null),
 })
 
 export const radarConfigSnapshotSchema = z.object({
@@ -67,6 +79,7 @@ export const radarConfigSnapshotSchema = z.object({
   selectedTerm: z.string().min(1).nullable().default(null),
   dataSourceId: z.string().min(1).nullable().default(null),
   config: radarConfigSchema,
+  termSnapshot: radarTermMetricSnapshotSchema.nullable().default(null),
 })
 
 export const radarDataSourceRecordSchema = z.object({
@@ -97,6 +110,7 @@ export const radarPersistenceStateSchema = z.object({
 
 export type RadarConfigInput = z.infer<typeof radarConfigSchema>
 export type RawTermDataInput = z.infer<typeof rawTermDataSchema>
+export type RadarTermMetricSnapshot = z.infer<typeof radarTermMetricSnapshotSchema>
 export type RadarSearchHistoryEntry = z.infer<typeof radarSearchHistoryEntrySchema>
 export type RadarConfigSnapshot = z.infer<typeof radarConfigSnapshotSchema>
 export type RadarDataSourceRecord = z.infer<typeof radarDataSourceRecordSchema>

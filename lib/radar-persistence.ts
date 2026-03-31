@@ -7,6 +7,7 @@ import {
   type RadarConfigSnapshot,
   type RadarPersistenceState,
   type RadarSearchHistoryEntry,
+  type RadarTermMetricSnapshot,
 } from './radar-schemas'
 
 const RADAR_STORAGE_KEY = 'radar:v2:state'
@@ -70,6 +71,7 @@ export function createRadarConfigSnapshot(input: {
   config: RadarConfigInput
   selectedTerm?: string | null
   dataSourceId?: string | null
+  termSnapshot?: RadarTermMetricSnapshot | null
   createdAt?: string
 }): RadarConfigSnapshot {
   return radarConfigSnapshotSchema.parse({
@@ -80,6 +82,7 @@ export function createRadarConfigSnapshot(input: {
     selectedTerm: input.selectedTerm ?? null,
     dataSourceId: input.dataSourceId ?? null,
     config: input.config,
+    termSnapshot: input.termSnapshot ?? null,
   })
 }
 
@@ -99,6 +102,7 @@ export function createRadarSearchHistoryEntry(input: {
   selectedTerm?: string | null
   dataSourceId: string
   interaction?: 'query' | 'selection'
+  termSnapshot?: RadarTermMetricSnapshot | null
   createdAt?: string
 }): RadarSearchHistoryEntry {
   return radarSearchHistoryEntrySchema.parse({
@@ -108,6 +112,7 @@ export function createRadarSearchHistoryEntry(input: {
     dataSourceId: input.dataSourceId,
     interaction: input.interaction ?? 'selection',
     createdAt: input.createdAt ?? new Date().toISOString(),
+    termSnapshot: input.termSnapshot ?? null,
   })
 }
 

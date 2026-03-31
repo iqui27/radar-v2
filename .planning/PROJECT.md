@@ -17,12 +17,12 @@ O cliente precisa tomar decisao sobre termos com contexto confiavel, historico l
 - ✓ Ajuste manual dos parametros do score RADAR no painel de configuracao.
 - ✓ Filtro global de periodo e navegacao principal do dashboard.
 - ✓ Persistencia local-first para configuracao atual, snapshots e registry de origem de dados — Phase 1.
+- ✓ Historico recente de busca/selecao com restore contextual na Consulta — Phase 2.
+- ✓ Historico restauravel de configuracao com snapshots e restore real — Phase 2.
+- ✓ Deltas historicos de score, posicao, CTR, cliques e impressoes no card de Consulta — Phase 2.
 
 ### Active
 
-- [ ] Persistir historico de buscas e selecoes de termo com contexto temporal.
-- [ ] Versionar configuracoes do score RADAR com snapshots restauraveis.
-- [ ] Exibir variacao historica de metricas quando um termo for consultado.
 - [ ] Importar novas planilhas como novas versoes de dataset.
 - [ ] Permitir troca explicita da origem de dados em todo o dashboard.
 
@@ -53,6 +53,8 @@ O projeto ja possui uma base funcional em `Next.js`, `React 19`, `Tailwind` e `R
 | Tratar persistencia nova como local-first | Resolve a pendencia atual sem aumentar superficie tecnica cedo demais | ✓ Good |
 | Separar origem de dados em registry/versionamento explicito | Evita acoplamento a um unico dataset importado | ✓ Good |
 | Centralizar o shell em um hook de estado local-first | Reduz drift entre config, selecao e origem ativa | ✓ Good |
+| Persistir snapshots metricos em selecoes e snapshots de config | Permite comparacao historica confiavel sem backend | ✓ Good |
+| Mostrar historico e delta dentro dos paineis existentes | Preserva a leitura minimalista do dashboard | ✓ Good |
 
 ---
-*Last updated: 2026-03-31 after Phase 1 completion*
+*Last updated: 2026-03-31 after Phase 2 completion*

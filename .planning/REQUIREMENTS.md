@@ -7,15 +7,15 @@
 
 ### History
 
-- [ ] **HIST-01**: Usuario pode ver historico cronologico das buscas e termos selecionados.
-- [ ] **HIST-02**: Usuario pode revisar a evolucao das metricas de um termo ao longo do historico salvo.
-- [ ] **HIST-03**: Ao selecionar um termo, o card de historico mostra deltas relevantes versus snapshot anterior.
+- [x] **HIST-01**: Usuario pode ver historico cronologico das buscas e termos selecionados.
+- [x] **HIST-02**: Usuario pode revisar a evolucao das metricas de um termo ao longo do historico salvo.
+- [x] **HIST-03**: Ao selecionar um termo, o card de historico mostra deltas relevantes versus snapshot anterior.
 
 ### Configuration
 
 - [ ] **CONF-01**: Alteracoes das variaveis do score RADAR respeitam validacoes e invariantes antes de salvar.
 - [ ] **CONF-02**: Salvar configuracao gera snapshot com timestamp e contexto do termo consultado quando houver.
-- [ ] **CONF-03**: Usuario pode restaurar um snapshot anterior de configuracao pelo historico.
+- [x] **CONF-03**: Usuario pode restaurar um snapshot anterior de configuracao pelo historico.
 
 ### Data Sources
 
@@ -43,12 +43,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HIST-01 | Phase 2 | Pending |
-| HIST-02 | Phase 2 | Pending |
-| HIST-03 | Phase 2 | Pending |
+| HIST-01 | Phase 2 | Complete |
+| HIST-02 | Phase 2 | Complete |
+| HIST-03 | Phase 2 | Complete |
 | CONF-01 | Phase 1 | Complete |
 | CONF-02 | Phase 1 | Complete |
-| CONF-03 | Phase 2 | Pending |
+| CONF-03 | Phase 2 | Complete |
 | DATA-01 | Phase 3 | Pending |
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 3 | Pending |
@@ -61,4 +61,4 @@
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-03-31 after Phase 2 completion*

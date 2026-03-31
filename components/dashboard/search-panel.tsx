@@ -1,0 +1,658 @@
+'use client'
+
+import { useState, useMemo, useRef, useEffect } from 'react'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Clock3,
+  Eye,
+  History,
+  MousePointerClick,
+  Search,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { TermCluster } from './term-cluster'
+import type { EnrichedTermData } from '@/lib/radar-data'
+import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
+import { calculateClusterMetrics, formatNumber, getScoreColor, getScoreLabel } from '@/lib/radar-data'
+
+interface SearchPanelProps {
+  data: EnrichedTermData[]
+  historyEntries: SearchHistoryListItem[]
+  onHistorySelect: (entryId: string) => void
+  onTermSelect: (term: EnrichedTermData, query?: string) => void
+  selectedTerm: EnrichedTermData | null
+  selectedTermBaseline: TermMetricBaseline | null
+}
+
+export function SearchPanel({
+  data,
+  historyEntries,
+  onHistorySelect,
+  onTermSelect,
+  selectedTerm,
+  selectedTermBaseline,
+}: SearchPanelProps) {
+  const [search, setSearch] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const [metricsView, setMetricsView] = useState<'aggregate' | 'individual'>('aggregate')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const suggestions = useMemo(() => {
+    if (!search) return []
+    const query = search.toLowerCase()
+    return data
+      .filter(d => d.term.toLowerCase().includes(query))
+      .slice(0, 8)
+  }, [data, search])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSelect = (term: EnrichedTermData) => {
+    const currentQuery = search.trim()
+    setSearch('')
+    setIsOpen(false)
+    onTermSelect(term, currentQuery || term.term)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className={`gap-4 ${selectedTerm ? 'flex flex-col lg:flex-row lg:items-end lg:justify-between' : ''}`}>
+        {/* Search Bar */}
+        <div ref={containerRef} className="relative min-w-0 w-full lg:w-[820px] lg:max-w-[820px] lg:flex-none">
+          <div className="relative">
+            <label htmlFor="term-search" className="sr-only">
+              Buscar termo
+            </label>
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="term-search"
+              ref={inputRef}
+              type="text"
+              name="term-search"
+              aria-label="Buscar termo"
+              autoComplete="off"
+              placeholder="Digite um termo de busca…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setIsOpen(true)
+              }}
+              onFocus={() => setIsOpen(true)}
+              className="h-11 border-border/50 bg-card pl-11 text-sm transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          
+          {isOpen && suggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-border/50 bg-card shadow-xl">
+              {suggestions.map((term, index) => (
+                <button
+                  type="button"
+                  key={term.term}
+                  className={`group flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
+                    index !== suggestions.length - 1 ? 'border-b border-border/30' : ''
+                  }`}
+                  onClick={() => handleSelect(term)}
+                >
+                  <span className="text-sm font-medium group-hover:text-primary">{term.term}</span>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: getScoreColor(term.score) }}
+                    />
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {term.score.toFixed(2)}
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {data.length} termos disponiveis para consulta
+          </p>
+        </div>
+
+        {selectedTerm && (
+          <div className="flex flex-col items-end justify-end gap-2 lg:flex-none lg:pb-[2px]">
+            <div className="text-right">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Modo das metricas
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Termo isolado ou cluster relacionado
+              </p>
+            </div>
+            <div className="inline-flex rounded-xl border border-border/50 bg-card/70 p-1 shadow-sm backdrop-blur-sm">
+              <button
+                type="button"
+                onClick={() => setMetricsView('individual')}
+                aria-pressed={metricsView === 'individual'}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                  metricsView === 'individual'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetricsView('aggregate')}
+                aria-pressed={metricsView === 'aggregate'}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-[background-color,color,box-shadow] ${
+                  metricsView === 'aggregate'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Agregadas
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {historyEntries.length > 0 && (
+        <Card className="border-border/40 bg-card/55">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium tracking-tight text-foreground">
+                    Historico recente
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Retome buscas e selecoes recentes para comparar contexto sem recomecar a leitura.
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit border-border/50 bg-background/40 text-[10px]">
+                {historyEntries.length} contextos recentes
+              </Badge>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {historyEntries.map((entry) => (
+                <button
+                  type="button"
+                  key={entry.id}
+                  onClick={() => onHistorySelect(entry.id)}
+                  className="rounded-2xl border border-border/40 bg-background/35 p-3 text-left transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/55"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                      {entry.interaction === 'selection' ? 'Selecao' : 'Busca'}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Clock3 className="h-3 w-3" />
+                      {entry.relativeLabel}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-1 text-sm font-medium text-foreground">
+                    {entry.summaryLabel}
+                  </p>
+                  <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
+                    {entry.termSnapshot
+                      ? `Score ${entry.termSnapshot.score.toFixed(2)} • CTR ${entry.termSnapshot.ctr.toFixed(2)}%`
+                      : 'Sem snapshot de metricas'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Term Analysis Card */}
+      {selectedTerm && (
+        <TermAnalysisCard
+          term={selectedTerm}
+          allData={data}
+          onTermSelect={onTermSelect}
+          metricsView={metricsView}
+          selectedTermBaseline={selectedTermBaseline}
+        />
+      )}
+
+      {/* Cluster Visualization - The Main Feature */}
+      <TermCluster 
+        selectedTerm={selectedTerm} 
+        allTerms={data} 
+        onTermSelect={onTermSelect}
+      />
+
+      {/* Empty State */}
+      {!selectedTerm && (
+        <Card className="border-border/50 border-dashed bg-gradient-to-br from-card to-muted/20">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="relative">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
+                <Sparkles className="h-7 w-7 text-primary" />
+              </div>
+              <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                <Zap className="h-3 w-3 text-primary-foreground" />
+              </div>
+            </div>
+            <p className="mt-6 text-center text-base font-medium text-foreground">
+              Visualize o Cluster de Termos
+            </p>
+            <p className="mt-2 max-w-lg text-center text-sm text-muted-foreground">
+              Busque um termo para ver a analise completa com visualizacao interativa
+              de termos semanticamente relacionados
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function TermAnalysisCard({
+  term,
+  allData,
+  onTermSelect,
+  metricsView,
+  selectedTermBaseline,
+}: {
+  term: EnrichedTermData
+  allData: EnrichedTermData[]
+  onTermSelect: (term: EnrichedTermData, query?: string) => void
+  metricsView: 'aggregate' | 'individual'
+  selectedTermBaseline: TermMetricBaseline | null
+}) {
+  const clusterMetrics = useMemo(() => calculateClusterMetrics(term, allData), [allData, term])
+  const [selectedTerm, ...relatedTerms] = clusterMetrics.terms
+  const [isRelatedTermsOpen, setIsRelatedTermsOpen] = useState(false)
+  const visibleRelatedTerms = relatedTerms.slice(0, 6)
+  const hiddenRelatedTerms = relatedTerms.slice(6)
+  const hiddenRelatedCount = Math.max(0, relatedTerms.length - visibleRelatedTerms.length)
+  const isAggregateView = metricsView === 'aggregate'
+  const currentScore = isAggregateView ? clusterMetrics.avgScore : selectedTerm.score
+  const currentExpectedCTR = isAggregateView ? clusterMetrics.avgExpectedCTR : selectedTerm.expCTR
+  const currentCTR = isAggregateView ? clusterMetrics.avgCTR : selectedTerm.ctr
+  const currentAction = isAggregateView ? clusterMetrics.action : selectedTerm.action
+  const scoreColor = getScoreColor(currentScore)
+  const fillWidth = Math.max(5, currentScore * 100)
+
+  const stats = [
+    {
+      label: isAggregateView ? 'Posicao Media' : 'Posicao',
+      value: isAggregateView ? clusterMetrics.avgPosition.toFixed(1) : selectedTerm.position.toFixed(1),
+      icon: Target,
+      delta: null,
+    },
+    {
+      label: isAggregateView ? 'CTR do Cluster' : 'CTR',
+      value: `${currentCTR.toFixed(2)}%`,
+      icon: TrendingUp,
+      delta: currentCTR > currentExpectedCTR ? '+' : '-',
+    },
+    {
+      label: 'Cliques',
+      value: formatNumber(isAggregateView ? clusterMetrics.totalClicks : selectedTerm.clicks),
+      icon: MousePointerClick,
+      delta: null,
+    },
+    {
+      label: 'Impressoes',
+      value: formatNumber(isAggregateView ? clusterMetrics.totalImpressions : selectedTerm.impressions),
+      icon: Eye,
+      delta: null,
+    },
+  ]
+
+  return (
+    <Card className="gap-0 overflow-hidden border-border/30 py-0 bg-gradient-to-br from-card via-card to-muted/10">
+      {/* Header with Score */}
+      <div
+        className="relative overflow-hidden border-b border-border/30 px-6 py-5"
+        style={{
+          background: `linear-gradient(135deg, ${scoreColor}2e 0%, ${scoreColor}1f 46%, ${scoreColor}12 100%)`,
+        }}
+      >
+        {/* Background decoration */}
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            background: `radial-gradient(circle at 85% 10%, ${scoreColor} 0%, transparent 42%)`
+          }}
+        />
+        
+        <div className="relative flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <Badge
+                className="border-0 text-[10px] font-semibold"
+                style={{
+                  backgroundColor: `${scoreColor}26`,
+                  color: 'rgba(255,255,255,0.92)',
+                  boxShadow: `inset 0 0 0 1px ${scoreColor}40`,
+                }}
+              >
+                Analise
+              </Badge>
+              <Badge variant="outline" className="border-border/40 bg-background/20 text-[10px] text-foreground/80">
+                {relatedTerms.length} relacionados
+              </Badge>
+            </div>
+            <h3 className="mt-2 text-xl font-semibold tracking-tight">{selectedTerm.term}</h3>
+            <p className="mt-1 text-sm text-foreground/65">
+              {isAggregateView
+                ? 'Metricas agregadas do termo selecionado com o cluster semantico relacionado'
+                : 'Metricas individuais do termo selecionado com acesso rapido aos relacionados'}
+            </p>
+            {visibleRelatedTerms.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {visibleRelatedTerms.map((relatedTerm) => (
+                  <button
+                    key={relatedTerm.term}
+                    type="button"
+                    onClick={() => onTermSelect(relatedTerm)}
+                    className="rounded-full border border-white/8 bg-background/16 px-3 py-1 text-[11px] text-foreground/82 transition-colors hover:bg-background/24 hover:text-foreground"
+                  >
+                    {relatedTerm.term}
+                  </button>
+                ))}
+                {hiddenRelatedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsRelatedTermsOpen(true)}
+                    className="rounded-full border border-white/8 bg-background/10 px-3 py-1 text-[11px] text-foreground/55 transition-[background-color,color,border-color,transform] duration-200 ease-out hover:border-white/15 hover:bg-background/18 hover:text-foreground/82"
+                  >
+                    +{hiddenRelatedCount}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {selectedTermBaseline && (
+              <div className="mt-4 rounded-2xl border border-white/8 bg-background/12 p-3">
+                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-foreground/60">
+                      Leitura historica
+                    </p>
+                    <p className="mt-1 text-xs text-foreground/82">
+                      {selectedTermBaseline.sourceLabel}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="w-fit border-white/10 bg-background/12 text-[10px] text-foreground/75">
+                    {selectedTermBaseline.comparisonLabel}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 grid gap-2 md:grid-cols-5">
+                  <DeltaPill label="Score" delta={selectedTermBaseline.deltas.score} precision={2} />
+                  <DeltaPill label="Posicao" delta={selectedTermBaseline.deltas.position} precision={1} />
+                  <DeltaPill label="CTR" delta={selectedTermBaseline.deltas.ctr} suffix="%" precision={2} />
+                  <DeltaPill label="Cliques" delta={selectedTermBaseline.deltas.clicks} compact />
+                  <DeltaPill label="Impressoes" delta={selectedTermBaseline.deltas.impressions} compact />
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="text-right">
+            <div 
+              className="text-4xl font-bold tracking-tighter"
+              style={{ color: scoreColor }}
+            >
+              {currentScore.toFixed(2)}
+            </div>
+            <Badge
+              className="mt-2 border-0 text-[10px] font-semibold uppercase"
+              style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
+            >
+              {getScoreLabel(currentScore)}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Score Bar */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>Score RADAR</span>
+            <span>{(fillWidth).toFixed(0)}%</span>
+          </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted/50">
+            <div
+              className="h-full rounded-full transition-[width,box-shadow] duration-1000 ease-out"
+              style={{ 
+                width: `${fillWidth}%`, 
+                backgroundColor: scoreColor,
+                boxShadow: `0 0 10px ${scoreColor}50`
+              }}
+            />
+          </div>
+          <div className="mt-1.5 flex justify-between text-[9px] text-muted-foreground/60">
+            <span>Evitar</span>
+            <span>Avaliar</span>
+            <span>Testar</span>
+            <span>Investir</span>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={isRelatedTermsOpen} onOpenChange={setIsRelatedTermsOpen}>
+        <DialogContent
+          className="max-w-md rounded-2xl border-border/50 p-0 shadow-2xl backdrop-blur-xl duration-200"
+          style={{
+            background: `linear-gradient(160deg, ${scoreColor}24 0%, ${scoreColor}18 38%, rgba(9,10,16,0.98) 100%)`,
+          }}
+          showCloseButton={false}
+        >
+          <div className="relative overflow-hidden rounded-[inherit]">
+            <div
+              className="absolute inset-0 opacity-70"
+              aria-hidden="true"
+              style={{
+                background: `radial-gradient(circle at top right, ${scoreColor}40 0%, transparent 52%)`,
+              }}
+            />
+            <div className="relative border-b border-border/40 px-5 py-4">
+              <DialogHeader className="gap-1 text-left">
+                <DialogTitle className="text-base tracking-tight">
+                  Mais termos relacionados
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Termos do mesmo cluster semantico para navegar sem poluir o card principal.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="px-5 py-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {hiddenRelatedTerms.length} termos ocultos
+                </span>
+                <span
+                  className="rounded-full px-2 py-1 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `${scoreColor}18`,
+                    color: scoreColor,
+                  }}
+                >
+                  {getScoreLabel(currentScore)}
+                </span>
+              </div>
+
+              <div className="flex max-h-[280px] flex-wrap gap-2 overflow-y-auto pr-1">
+                {hiddenRelatedTerms.map((relatedTerm, index) => (
+                  <button
+                    key={relatedTerm.term}
+                    type="button"
+                    onClick={() => {
+                      setIsRelatedTermsOpen(false)
+                      onTermSelect(relatedTerm)
+                    }}
+                    className="rounded-full border border-border/50 bg-card/70 px-3 py-1.5 text-left text-xs text-foreground/85 shadow-sm transition-[transform,background-color,border-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:border-border hover:bg-card hover:text-foreground"
+                    style={{
+                      transitionDelay: `${Math.min(index * 18, 120)}ms`,
+                    }}
+                  >
+                    {relatedTerm.term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <CardContent className="p-5">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              {stats.map((stat) => {
+            const Icon = stat.icon
+            return (
+              <div 
+                key={stat.label} 
+                className="group rounded-xl bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Icon className="h-3 w-3" />
+                  <span className="text-[10px] uppercase tracking-wide">{stat.label}</span>
+                </div>
+                <div className="mt-1.5 flex items-baseline gap-1">
+                  <span className="text-lg font-semibold tracking-tight">{stat.value}</span>
+                  {stat.delta && (
+                    <span className={`text-[10px] ${stat.delta === '+' ? 'text-chart-1' : 'text-chart-4'}`}>
+                      {stat.delta === '+' ? 'acima' : 'abaixo'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* CTR Comparison */}
+        <div className="mt-4 rounded-xl border border-border/30 bg-muted/10 p-4">
+          <div className="flex items-center justify-between text-sm">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">CTR Organico</p>
+              <p className="mt-0.5 text-2xl font-bold tracking-tight">{currentCTR.toFixed(2)}%</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-px bg-border/50" />
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">CTR Esperado</p>
+                <p className="mt-0.5 text-2xl font-bold tracking-tight text-muted-foreground">
+                  {currentExpectedCTR.toFixed(2)}%
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+            <div 
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: currentCTR > currentExpectedCTR ? '#10B981' : '#EF4444' }}
+            />
+            <span className="text-xs text-muted-foreground">
+              {currentCTR > currentExpectedCTR 
+                ? `${isAggregateView ? 'Cluster' : 'Termo'} ${((currentCTR / currentExpectedCTR - 1) * 100).toFixed(0)}% acima do esperado`
+                : `${isAggregateView ? 'Cluster' : 'Termo'} ${((1 - currentCTR / currentExpectedCTR) * 100).toFixed(0)}% abaixo do esperado`
+              }
+            </span>
+          </div>
+        </div>
+
+        {/* Action Recommendation */}
+        <div 
+          className="mt-4 rounded-xl p-4"
+          style={{ backgroundColor: `${scoreColor}10`, borderLeft: `3px solid ${scoreColor}` }}
+        >
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4" style={{ color: scoreColor }} />
+            <span className="text-sm font-medium">
+              {isAggregateView ? 'Recomendacao do Cluster' : 'Recomendacao'}
+            </span>
+          </div>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {currentAction.label === 'Evitar' &&
+              (isAggregateView
+                ? 'O cluster ja possui bom desempenho geral. Vale manter a base atual e atacar oportunidades fora deste grupo.'
+                : 'Este termo ja possui bom desempenho. Mantenha o conteudo atual e foque em outras oportunidades.')}
+            {currentAction.label === 'Avaliar' &&
+              (isAggregateView
+                ? 'O cluster tem sinais mistos. Vale priorizar os termos relacionados com maior impressao para ganhar eficiencia.'
+                : 'Avalie o custo-beneficio de otimizar este termo. Pode haver oportunidades de melhoria.')}
+            {currentAction.label === 'Testar' &&
+              (isAggregateView
+                ? 'O cluster pede experimentacao. Testes de copy, snippets e cobertura de conteudo devem gerar ganho conjunto.'
+                : 'Realize testes A/B com variacoes de conteudo para melhorar o CTR e posicionamento.')}
+            {currentAction.label === 'Investir' &&
+              (isAggregateView
+                ? 'O cluster representa uma oportunidade real. Priorize conteudo, pagina de apoio e melhoria de destaque organico para o grupo.'
+                : 'Alta prioridade para otimizacao. Invista em conteudo de qualidade e estrategias de SEO.')}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DeltaPill({
+  label,
+  delta,
+  suffix = '',
+  precision = 0,
+  compact = false,
+}: {
+  label: string
+  delta: TermMetricBaseline['deltas'][keyof TermMetricBaseline['deltas']]
+  suffix?: string
+  precision?: number
+  compact?: boolean
+}) {
+  const isPositive = delta.direction === 'up'
+  const isNeutral = delta.direction === 'flat'
+  const toneClass = isNeutral
+    ? 'border-white/8 bg-background/22 text-foreground/72'
+    : isPositive
+      ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200'
+      : 'border-rose-400/20 bg-rose-500/10 text-rose-200'
+
+  const Icon = isNeutral ? ArrowRight : isPositive ? ArrowUpRight : TrendingDown
+  const currentValue = compact
+    ? formatNumber(delta.current)
+    : `${delta.current.toFixed(precision)}${suffix}`
+  const baselineValue = compact
+    ? formatNumber(delta.baseline)
+    : `${delta.baseline.toFixed(precision)}${suffix}`
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-[0.16em]">{label}</span>
+        <Icon className="h-3.5 w-3.5" />
+      </div>
+      <div className="mt-1 text-sm font-semibold tracking-tight">{currentValue}</div>
+      <div className="mt-1 text-[11px] opacity-80">
+        antes {baselineValue}
+      </div>
+    </div>
+  )
+}
