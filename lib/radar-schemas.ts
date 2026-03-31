@@ -93,6 +93,9 @@ export const radarDataSourceRecordSchema = z.object({
   data: z.array(rawTermDataSchema),
   meta: z
     .object({
+      sourceKey: z.string().min(1).optional(),
+      sourceVersion: z.number().int().min(1).optional(),
+      importedAt: z.string().datetime().optional(),
       filename: z.string().min(1).optional(),
       notes: z.string().min(1).optional(),
     })

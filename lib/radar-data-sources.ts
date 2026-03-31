@@ -18,6 +18,23 @@ function createSourceId(prefix: string): string {
   return `${prefix}-${seed}`
 }
 
+function slugifySourceKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function getNextSourceVersion(state: RadarPersistenceState, sourceKey: string): number {
+  return (
+    state.dataSources
+      .filter((source) => source.meta.sourceKey === sourceKey)
+      .reduce((max, source) => Math.max(max, source.meta.sourceVersion ?? 1), 0) + 1
+  )
+}
+
 export function createEmbeddedRadarDataSource(
   data: RawTermDataInput[] = RAW_RADAR_DATA
 ): RadarDataSourceRecord {
@@ -31,6 +48,8 @@ export function createEmbeddedRadarDataSource(
     isActive: true,
     data,
     meta: {
+      sourceKey: 'embedded-radar',
+      sourceVersion: 1,
       notes: 'Dataset local bootstrap do RADAR v2',
     },
   })
@@ -136,16 +155,22 @@ export function registerImportedRadarDataSource(
     activate?: boolean
   }
 ): RadarPersistenceState {
+  const sourceKey = slugifySourceKey(input.filename ?? input.label)
+  const sourceVersion = getNextSourceVersion(state, sourceKey)
+  const importedAt = new Date().toISOString()
   const nextSource = radarDataSourceRecordSchema.parse({
     id: createSourceId('import'),
     version: 1,
-    label: input.label,
+    label: `${input.label} v${sourceVersion}`,
     kind: 'imported',
-    createdAt: new Date().toISOString(),
+    createdAt: importedAt,
     recordCount: input.data.length,
     isActive: input.activate ?? true,
     data: input.data,
     meta: {
+      sourceKey,
+      sourceVersion,
+      importedAt,
       filename: input.filename,
       notes: input.notes,
     },

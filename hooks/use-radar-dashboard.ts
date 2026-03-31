@@ -28,8 +28,10 @@ import {
   bootstrapRadarPersistenceState,
   getActiveRadarData,
   getActiveRadarDataSource,
+  registerImportedRadarDataSource,
   setActiveRadarDataSource,
 } from '@/lib/radar-data-sources'
+import { parseRadarImportFile, type RadarImportResult } from '@/lib/radar-import'
 
 interface UseRadarDashboardStateOptions {
   initialDateRange?: DashboardDateRangeKey
@@ -54,6 +56,14 @@ export function useRadarDashboardState(
   const activeDataSource = useMemo(
     () => getActiveRadarDataSource(persistenceState),
     [persistenceState]
+  )
+
+  const sortedDataSources = useMemo(
+    () =>
+      [...persistenceState.dataSources].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [persistenceState.dataSources]
   )
 
   const rawData = useMemo(
@@ -136,6 +146,41 @@ export function useRadarDashboardState(
       const nextState = setActiveRadarDataSource(persistenceState, sourceId)
       persistState(nextState)
       setSelectedTerm(null)
+      setSelectedHistoryEntryId(null)
+    },
+    [persistState, persistenceState]
+  )
+
+  const importDataSource = useCallback(
+    async (
+      file: File,
+      options: {
+        label?: string
+        notes?: string
+        activate?: boolean
+      } = {}
+    ): Promise<RadarImportResult> => {
+      const parsed = await parseRadarImportFile(file, {
+        label: options.label,
+      })
+
+      if (!parsed.success) {
+        return parsed
+      }
+
+      const nextState = registerImportedRadarDataSource(persistenceState, {
+        label: parsed.label,
+        data: parsed.data,
+        filename: file.name,
+        notes: options.notes,
+        activate: options.activate ?? true,
+      })
+
+      persistState(nextState)
+      setSelectedTerm(null)
+      setSelectedHistoryEntryId(null)
+
+      return parsed
     },
     [persistState, persistenceState]
   )
@@ -249,8 +294,9 @@ export function useRadarDashboardState(
     config,
     configHistory,
     configSnapshots: persistenceState.configSnapshots,
-    dataSources: persistenceState.dataSources,
+    dataSources: sortedDataSources,
     dateRange,
+    importDataSource,
     isDirty,
     rawData,
     savedConfig,

@@ -13,16 +13,16 @@
 
 ### Configuration
 
-- [ ] **CONF-01**: Alteracoes das variaveis do score RADAR respeitam validacoes e invariantes antes de salvar.
-- [ ] **CONF-02**: Salvar configuracao gera snapshot com timestamp e contexto do termo consultado quando houver.
+- [x] **CONF-01**: Alteracoes das variaveis do score RADAR respeitam validacoes e invariantes antes de salvar.
+- [x] **CONF-02**: Salvar configuracao gera snapshot com timestamp e contexto do termo consultado quando houver.
 - [x] **CONF-03**: Usuario pode restaurar um snapshot anterior de configuracao pelo historico.
 
 ### Data Sources
 
-- [ ] **DATA-01**: Usuario pode importar planilha com novos termos e metricas.
-- [ ] **DATA-02**: Cada importacao cria uma nova versao identificavel da origem de dados.
-- [ ] **DATA-03**: Usuario pode escolher a origem de dados ativa por dropdown.
-- [ ] **DATA-04**: Ao trocar a origem, todo o dashboard recalcula KPIs, tabela, consulta e graficos.
+- [x] **DATA-01**: Usuario pode importar planilha com novos termos e metricas.
+- [x] **DATA-02**: Cada importacao cria uma nova versao identificavel da origem de dados.
+- [x] **DATA-03**: Usuario pode escolher a origem de dados ativa por dropdown.
+- [x] **DATA-04**: Ao trocar a origem, todo o dashboard recalcula KPIs, tabela, consulta e graficos.
 
 ## v2 Requirements
 
@@ -49,10 +49,10 @@
 | CONF-01 | Phase 1 | Complete |
 | CONF-02 | Phase 1 | Complete |
 | CONF-03 | Phase 2 | Complete |
-| DATA-01 | Phase 3 | Pending |
+| DATA-01 | Phase 3 | Complete |
 | DATA-02 | Phase 1 | Complete |
-| DATA-03 | Phase 3 | Pending |
-| DATA-04 | Phase 3 | Pending |
+| DATA-03 | Phase 3 | Complete |
+| DATA-04 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 10 total
@@ -61,4 +61,4 @@
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after Phase 2 completion*
+*Last updated: 2026-03-31 after Phase 3 completion*

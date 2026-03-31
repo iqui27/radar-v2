@@ -25,7 +25,10 @@ export function Dashboard() {
     activeDataSource,
     config,
     configHistory,
+    changeActiveDataSource,
+    dataSources,
     dateRange,
+    importDataSource,
     isDirty,
     rawData,
     searchHistoryEntries,
@@ -98,7 +101,10 @@ export function Dashboard() {
       <Header
         theme={theme}
         dateRange={dateRange}
-        activeSourceLabel={activeDataSource.label}
+        activeDataSource={activeDataSource}
+        dataSources={dataSources}
+        onDataSourceChange={changeActiveDataSource}
+        onImportDataSource={importDataSource}
         onDateRangeChange={setDateRange}
         onThemeToggle={toggleTheme}
       />

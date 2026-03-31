@@ -20,11 +20,14 @@ O cliente precisa tomar decisao sobre termos com contexto confiavel, historico l
 - ✓ Historico recente de busca/selecao com restore contextual na Consulta — Phase 2.
 - ✓ Historico restauravel de configuracao com snapshots e restore real — Phase 2.
 - ✓ Deltas historicos de score, posicao, CTR, cliques e impressoes no card de Consulta — Phase 2.
+- ✓ Importacao CSV-first de novas bases com validacao e feedback — Phase 3.
+- ✓ Dropdown de origem ativa no header com metadados e troca de fonte — Phase 3.
+- ✓ Recalculo global do dashboard a partir da origem ativa — Phase 3.
 
 ### Active
 
-- [ ] Importar novas planilhas como novas versoes de dataset.
-- [ ] Permitir troca explicita da origem de dados em todo o dashboard.
+- [ ] Expandir suporte de importacao para `.xlsx` nativo se o produto precisar.
+- [ ] Refinar comparacoes temporais quando houver mais historico de datasets.
 
 ### Out of Scope
 
@@ -55,6 +58,8 @@ O projeto ja possui uma base funcional em `Next.js`, `React 19`, `Tailwind` e `R
 | Centralizar o shell em um hook de estado local-first | Reduz drift entre config, selecao e origem ativa | ✓ Good |
 | Persistir snapshots metricos em selecoes e snapshots de config | Permite comparacao historica confiavel sem backend | ✓ Good |
 | Mostrar historico e delta dentro dos paineis existentes | Preserva a leitura minimalista do dashboard | ✓ Good |
+| Fechar a importacao inicial como CSV-first | Entrega utilidade imediata sem dependencia pesada prematura | ✓ Good |
+| Concentrar importacao e source switching no header | Mantem a navegacao enxuta e evita criar outra tela operacional | ✓ Good |
 
 ---
-*Last updated: 2026-03-31 after Phase 2 completion*
+*Last updated: 2026-03-31 after Phase 3 completion*
