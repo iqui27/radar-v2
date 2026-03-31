@@ -32,6 +32,7 @@ export interface EnrichedTermData extends RawTermData {
     label: string
     description: string
   }
+  clusterId?: number
 }
 
 export interface ClusterMetrics {
@@ -43,6 +44,17 @@ export interface ClusterMetrics {
   avgExpectedCTR: number
   avgScore: number
   action: EnrichedTermData['action']
+  clusterId?: number
+}
+
+export interface ClusterInfo {
+  clusterId: number
+  terms: EnrichedTermData[]
+  avgScore: number
+  avgCTR: number
+  totalImpressions: number
+  totalClicks: number
+  avgPosition: number
 }
 
 type RadarConfigLike = {
@@ -245,6 +257,82 @@ export function getScoreLabel(score: number, config: RadarConfig = DEFAULT_CONFI
   return 'Investir'
 }
 
+// N-gram overlap calculation for semantic similarity
+function getNgrams(str: string, n: number = 2): Set<string> {
+  const normalized = str.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/)
+  const ngrams = new Set<string>()
+  
+  for (const word of normalized) {
+    if (word.length < n) {
+      ngrams.add(word)
+      continue
+    }
+    for (let i = 0; i <= word.length - n; i++) {
+      ngrams.add(word.slice(i, i + n))
+    }
+  }
+  
+  return ngrams
+}
+
+function calculateNgramOverlap(str1: string, str2: string, n: number = 2): number {
+  const ngrams1 = getNgrams(str1, n)
+  const ngrams2 = getNgrams(str2, n)
+  
+  if (ngrams1.size === 0 && ngrams2.size === 0) return 1
+  if (ngrams1.size === 0 || ngrams2.size === 0) return 0
+  
+  let intersection = 0
+  for (const gram of ngrams1) {
+    if (ngrams2.has(gram)) intersection++
+  }
+  
+  const union = ngrams1.size + ngrams2.size - intersection
+  return union > 0 ? intersection / union : 0
+}
+
+// Levenshtein distance for edit distance calculation
+function levenshteinDistance(str1: string, str2: string): number {
+  const m = str1.length
+  const n = str2.length
+  
+  if (m === 0) return n
+  if (n === 0) return m
+  
+  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0))
+  
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      )
+    }
+  }
+  
+  return dp[m][n]
+}
+
+function normalizeEditDistance(str1: string, str2: string): number {
+  const maxLen = Math.max(str1.length, str2.length)
+  if (maxLen === 0) return 1
+  return 1 - levenshteinDistance(str1, str2) / maxLen
+}
+
+// Semantic similarity combining n-gram overlap and edit distance
+function calculateSemanticSimilarity(term1: string, term2: string): number {
+  const ngramOverlap = calculateNgramOverlap(term1, term2, 2)
+  const editDistNorm = normalizeEditDistance(term1.toLowerCase(), term2.toLowerCase())
+  
+  // 70% n-gram overlap, 30% edit distance
+  return ngramOverlap * 0.7 + editDistNorm * 0.3
+}
+
 export function enrichTermData(data: RawTermData[], config: RadarConfig = DEFAULT_CONFIG): EnrichedTermData[] {
   return data.map(d => {
     const score = calcScore(d.ctr, d.position, config)
@@ -254,22 +342,110 @@ export function enrichTermData(data: RawTermData[], config: RadarConfig = DEFAUL
   }).sort((a, b) => b.score - a.score)
 }
 
+// Assign cluster IDs to terms based on semantic similarity
+export function assignClusterIds(
+  terms: EnrichedTermData[],
+  similarityThreshold: number = 0.4
+): EnrichedTermData[] {
+  const result = [...terms]
+  const visited = new Set<number>()
+  let clusterId = 1
+  
+  for (let i = 0; i < result.length; i++) {
+    if (visited.has(i)) continue
+    
+    // Start a new cluster with this term
+    visited.add(i)
+    result[i].clusterId = clusterId
+    
+    // Find all semantically similar terms
+    for (let j = i + 1; j < result.length; j++) {
+      if (visited.has(j)) continue
+      
+      const similarity = calculateSemanticSimilarity(result[i].term, result[j].term)
+      if (similarity >= similarityThreshold) {
+        visited.add(j)
+        result[j].clusterId = clusterId
+      }
+    }
+    
+    clusterId++
+  }
+  
+  return result
+}
+
+// Get related clusters for a given term
+export function getRelatedClusters(
+  selectedTerm: EnrichedTermData,
+  allTerms: EnrichedTermData[],
+  maxClusters: number = 5
+): Array<{ clusterId: number; terms: EnrichedTermData[]; avgScore: number; avgCTR: number }> {
+  if (!selectedTerm.clusterId) return []
+  
+  const selectedClusterId = selectedTerm.clusterId
+  
+  // Group all terms by clusterId
+  const clusterGroups = new Map<number, EnrichedTermData[]>()
+  for (const term of allTerms) {
+    if (term.clusterId === undefined) continue
+    if (!clusterGroups.has(term.clusterId)) {
+      clusterGroups.set(term.clusterId, [])
+    }
+    clusterGroups.get(term.clusterId)!.push(term)
+  }
+  
+  // Calculate similarity between selected term's cluster and other clusters
+  const clusterSimilarities: Array<{
+    clusterId: number
+    terms: EnrichedTermData[]
+    avgScore: number
+    avgCTR: number
+    similarity: number
+  }> = []
+  
+  for (const [cid, clusterTerms] of clusterGroups) {
+    if (cid === selectedClusterId) continue
+    
+    // Calculate average semantic similarity between selected term and cluster terms
+    let totalSimilarity = 0
+    for (const term of clusterTerms) {
+      totalSimilarity += calculateSemanticSimilarity(selectedTerm.term, term.term)
+    }
+    const avgSimilarity = totalSimilarity / clusterTerms.length
+    
+    const totalImpressions = clusterTerms.reduce((sum, t) => sum + t.impressions, 0)
+    const totalClicks = clusterTerms.reduce((sum, t) => sum + t.clicks, 0)
+    const avgScore = clusterTerms.reduce((sum, t) => sum + t.score, 0) / clusterTerms.length
+    const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
+    
+    clusterSimilarities.push({
+      clusterId: cid,
+      terms: clusterTerms,
+      avgScore,
+      avgCTR,
+      similarity: avgSimilarity
+    })
+  }
+  
+  return clusterSimilarities
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, maxClusters)
+    .map(({ similarity, ...rest }) => rest)
+}
+
 export function getRelatedTerms(
   selectedTerm: EnrichedTermData,
   allTerms: EnrichedTermData[],
   maxRelated: number = 12
 ): EnrichedTermData[] {
-  const selectedWords = selectedTerm.term.toLowerCase().split(/\s+/)
-
   return allTerms
     .filter((term) => term.term !== selectedTerm.term)
     .map((term) => {
-      const termWords = term.term.toLowerCase().split(/\s+/)
-      const commonWords = selectedWords.filter((word) =>
-        termWords.some((termWord) => termWord.includes(word) || word.includes(termWord))
-      ).length
+      const semanticSimilarity = calculateSemanticSimilarity(selectedTerm.term, term.term)
       const scoreDiff = Math.abs(term.score - selectedTerm.score)
-      const similarity = commonWords * 10 + (100 - scoreDiff) / 10
+      // Combine semantic similarity (0-1) with score proximity (0-1)
+      const similarity = semanticSimilarity * 0.8 + (1 - scoreDiff) * 0.2
 
       return { term, similarity }
     })
@@ -306,7 +482,21 @@ export function calculateClusterMetrics(
     avgExpectedCTR,
     avgScore,
     action: getScoreAction(avgScore, config),
+    clusterId: selectedTerm.clusterId,
   }
+}
+
+// Get all terms in the same cluster as the selected term
+export function getClusterTerms(
+  selectedTerm: EnrichedTermData,
+  allTerms: EnrichedTermData[]
+): EnrichedTermData[] {
+  if (selectedTerm.clusterId === undefined) {
+    // Fall back to related terms if no clusterId
+    return getRelatedTerms(selectedTerm, allTerms, 20)
+  }
+  
+  return allTerms.filter(term => term.clusterId === selectedTerm.clusterId)
 }
 
 // Source data imported from the complete GSC export

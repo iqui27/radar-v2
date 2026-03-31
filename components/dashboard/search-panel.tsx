@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   ChevronDown,
+  ChevronRight,
   Eye,
   Filter,
   MousePointerClick,
@@ -24,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
-import { calculateClusterMetrics, formatNumber, getScoreColor, getScoreLabel } from '@/lib/radar-data'
+import { calculateClusterMetrics, formatNumber, getClusterTerms, getScoreColor, getScoreLabel } from '@/lib/radar-data'
 
 interface BrandFilter {
   includeBB: boolean
@@ -390,8 +391,10 @@ function TermAnalysisCard({
   selectedTermBaseline: TermMetricBaseline | null
 }) {
   const clusterMetrics = useMemo(() => calculateClusterMetrics(term, allData), [allData, term])
+  const clusterTerms = useMemo(() => getClusterTerms(term, allData), [term, allData])
   const [selectedTerm, ...relatedTerms] = clusterMetrics.terms
   const [isRelatedTermsOpen, setIsRelatedTermsOpen] = useState(false)
+  const [isClusterTermsOpen, setIsClusterTermsOpen] = useState(false)
   const visibleRelatedTerms = relatedTerms.slice(0, 6)
   const hiddenRelatedTerms = relatedTerms.slice(6)
   const hiddenRelatedCount = Math.max(0, relatedTerms.length - visibleRelatedTerms.length)
@@ -463,7 +466,21 @@ function TermAnalysisCard({
               <Badge variant="outline" className="border-border/40 bg-background/20 text-[10px] text-foreground/80">
                 {relatedTerms.length} relacionados
               </Badge>
+              {clusterMetrics.clusterId !== undefined && (
+                <Badge variant="outline" className="border-border/40 bg-background/20 text-[10px] text-foreground/80">
+                  Cluster #{clusterMetrics.clusterId}
+                </Badge>
+              )}
             </div>
+            {clusterMetrics.clusterId !== undefined && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-foreground/60">
+                <span>{clusterMetrics.terms.length} termos</span>
+                <span className="text-muted-foreground/40">|</span>
+                <span>Score medio: {clusterMetrics.avgScore.toFixed(2)}</span>
+                <span className="text-muted-foreground/40">|</span>
+                <span>CTR: {clusterMetrics.avgCTR.toFixed(2)}%</span>
+              </div>
+            )}
             <h3 className="mt-2 text-xl font-semibold tracking-tight">{selectedTerm.term}</h3>
             <p className="mt-1 text-sm text-foreground/65">
               {isAggregateView
@@ -490,6 +507,39 @@ function TermAnalysisCard({
                   >
                     +{hiddenRelatedCount}
                   </button>
+                )}
+              </div>
+            )}
+
+            {/* Cluster Terms Box */}
+            {clusterTerms.length > 0 && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsClusterTermsOpen(!isClusterTermsOpen)}
+                  className="flex w-full items-center gap-2 text-left text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/60 hover:text-foreground/80"
+                >
+                  <ChevronRight className={`h-3 w-3 transition-transform ${isClusterTermsOpen ? 'rotate-90' : ''}`} />
+                  Termos do cluster ({clusterTerms.length})
+                </button>
+                {isClusterTermsOpen && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {clusterTerms.map((clusterTerm) => (
+                      <button
+                        key={clusterTerm.term}
+                        type="button"
+                        onClick={() => onTermSelect(clusterTerm)}
+                        className={`rounded-full border px-3 py-1 text-[11px] transition-colors ${
+                          clusterTerm.term === selectedTerm.term
+                            ? 'border-primary/50 bg-primary/10 text-foreground'
+                            : 'border-border/50 bg-background/50 text-foreground/70 hover:bg-background/80 hover:text-foreground'
+                        }`}
+                        style={clusterTerm.term === selectedTerm.term ? { borderColor: scoreColor } : {}}
+                      >
+                        {clusterTerm.term}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
