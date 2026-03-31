@@ -305,6 +305,10 @@ export function calculateClusterMetrics(
 // Source data imported from the complete GSC export
 export const RADAR_DATA: RawTermData[] = RAW_RADAR_DATA
 
+export function getInitialRadarData(): RawTermData[] {
+  return RADAR_DATA
+}
+
 export function filterRadarDataByDateRange(
   data: RawTermData[],
   range: DashboardDateRangeKey
