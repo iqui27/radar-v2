@@ -46,11 +46,11 @@
 | HIST-01 | Phase 2 | Pending |
 | HIST-02 | Phase 2 | Pending |
 | HIST-03 | Phase 2 | Pending |
-| CONF-01 | Phase 1 | Pending |
-| CONF-02 | Phase 1 | Pending |
+| CONF-01 | Phase 1 | Complete |
+| CONF-02 | Phase 1 | Complete |
 | CONF-03 | Phase 2 | Pending |
 | DATA-01 | Phase 3 | Pending |
-| DATA-02 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 3 | Pending |
 | DATA-04 | Phase 3 | Pending |
 

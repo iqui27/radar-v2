@@ -6,7 +6,7 @@ O proximo milestone do RADAR v2 transforma o dashboard atual em uma ferramenta c
 
 ## Phases
 
-- [ ] **Phase 1: Persistence and Data Registry** - Criar a base confiavel para snapshots de configuracao, historico e versoes de dataset.
+- [x] **Phase 1: Persistence and Data Registry** - Criar a base confiavel para snapshots de configuracao, historico e versoes de dataset. (completed 2026-03-31)
 - [ ] **Phase 2: Search and Config History UX** - Exibir historicos e deltas de metricas na consulta e na configuracao.
 - [ ] **Phase 3: Dataset Import and Source Switching** - Importar planilhas, gerar novas versoes e trocar a origem ativa no dashboard.
 
@@ -24,9 +24,9 @@ O proximo milestone do RADAR v2 transforma o dashboard atual em uma ferramenta c
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Definir contratos de persistence para config snapshots, search history e data sources.
-- [ ] 01-02: Extrair a orquestracao do dashboard para um state container local-first.
-- [ ] 01-03: Integrar o registry persistido ao pipeline de enriquecimento do dashboard.
+- [x] 01-01: Definir contratos de persistence para config snapshots, search history e data sources.
+- [x] 01-02: Extrair a orquestracao do dashboard para um state container local-first.
+- [x] 01-03: Integrar o registry persistido ao pipeline de enriquecimento do dashboard.
 
 ### Phase 2: Search and Config History UX
 **Goal**: Mostrar historico util de buscas, snapshots de configuracao e deltas de metricas no fluxo de consulta.
@@ -64,6 +64,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Persistence and Data Registry | 0/3 | Not started | - |
+| 1. Persistence and Data Registry | 3/3 | Complete | 2026-03-31 |
 | 2. Search and Config History UX | 0/3 | Not started | - |
 | 3. Dataset Import and Source Switching | 0/3 | Not started | - |

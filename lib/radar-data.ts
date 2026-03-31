@@ -1,5 +1,5 @@
 import { RAW_RADAR_DATA } from './radar-data-source'
-import { radarConfigSchema, type RadarConfigInput } from './radar-schemas'
+import { radarConfigSchema } from './radar-schemas'
 
 // RADAR Score Configuration
 export const DEFAULT_CONFIG = {
@@ -45,7 +45,14 @@ export interface ClusterMetrics {
   action: EnrichedTermData['action']
 }
 
-export function validateRadarConfig(config: RadarConfigInput): RadarConfig {
+type RadarConfigLike = {
+  weights: number[]
+  posThresholds: number[]
+  scoreBands: number[]
+  expectedCTR: Record<number | string, number>
+}
+
+function normalizeRadarConfigShape(config: RadarConfigLike) {
   const normalizedExpectedCTR = Object.fromEntries(
     Array.from({ length: 20 }, (_, index) => {
       const position = index + 1
@@ -58,12 +65,29 @@ export function validateRadarConfig(config: RadarConfigInput): RadarConfig {
     })
   )
 
-  const parsed = radarConfigSchema.parse({
-    weights: config.weights,
-    posThresholds: config.posThresholds,
-    scoreBands: config.scoreBands,
+  return {
+    weights: [
+      Number(config.weights[0] ?? DEFAULT_CONFIG.weights[0]),
+      Number(config.weights[1] ?? DEFAULT_CONFIG.weights[1]),
+      Number(config.weights[2] ?? DEFAULT_CONFIG.weights[2]),
+    ] as [number, number, number],
+    posThresholds: [
+      Number(config.posThresholds[0] ?? DEFAULT_CONFIG.posThresholds[0]),
+      Number(config.posThresholds[1] ?? DEFAULT_CONFIG.posThresholds[1]),
+    ] as [number, number],
+    scoreBands: [
+      Number(config.scoreBands[0] ?? DEFAULT_CONFIG.scoreBands[0]),
+      Number(config.scoreBands[1] ?? DEFAULT_CONFIG.scoreBands[1]),
+      Number(config.scoreBands[2] ?? DEFAULT_CONFIG.scoreBands[2]),
+    ] as [number, number, number],
     expectedCTR: normalizedExpectedCTR,
-  })
+  }
+}
+
+export function validateRadarConfig(config: RadarConfigLike): RadarConfig {
+  const normalizedConfig = normalizeRadarConfigShape(config)
+
+  const parsed = radarConfigSchema.parse(normalizedConfig)
 
   return {
     weights: [...parsed.weights] as RadarConfig['weights'],
@@ -75,37 +99,20 @@ export function validateRadarConfig(config: RadarConfigInput): RadarConfig {
   }
 }
 
-export function isRadarConfigValid(config: RadarConfigInput): boolean {
-  const normalizedExpectedCTR = Object.fromEntries(
-    Array.from({ length: 20 }, (_, index) => {
-      const position = index + 1
-      const currentValue =
-        config.expectedCTR[position] ??
-        config.expectedCTR[String(position)] ??
-        DEFAULT_CONFIG.expectedCTR[position]
-
-      return [String(position), Number(currentValue)]
-    })
-  )
-
-  return radarConfigSchema.safeParse({
-    weights: config.weights,
-    posThresholds: config.posThresholds,
-    scoreBands: config.scoreBands,
-    expectedCTR: normalizedExpectedCTR,
-  }).success
+export function isRadarConfigValid(config: RadarConfigLike): boolean {
+  return radarConfigSchema.safeParse(normalizeRadarConfigShape(config)).success
 }
 
-export function sanitizeRadarConfig(config: Partial<RadarConfigInput> | null | undefined): RadarConfig {
+export function sanitizeRadarConfig(config: Partial<RadarConfigLike> | null | undefined): RadarConfig {
   if (!config) {
     return DEFAULT_CONFIG
   }
 
   try {
     return validateRadarConfig({
-      weights: (config.weights ?? DEFAULT_CONFIG.weights) as RadarConfigInput['weights'],
-      posThresholds: (config.posThresholds ?? DEFAULT_CONFIG.posThresholds) as RadarConfigInput['posThresholds'],
-      scoreBands: (config.scoreBands ?? DEFAULT_CONFIG.scoreBands) as RadarConfigInput['scoreBands'],
+      weights: config.weights ?? DEFAULT_CONFIG.weights,
+      posThresholds: config.posThresholds ?? DEFAULT_CONFIG.posThresholds,
+      scoreBands: config.scoreBands ?? DEFAULT_CONFIG.scoreBands,
       expectedCTR: {
         ...DEFAULT_CONFIG.expectedCTR,
         ...(config.expectedCTR ?? {}),
