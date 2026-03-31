@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ScatterChart,
   Scatter,
@@ -14,7 +14,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { EnrichedTermData } from '@/lib/radar-data'
-import { formatNumber, getScoreColor } from '@/lib/radar-data'
+import { formatNumber, getClusterStats, getScoreColor } from '@/lib/radar-data'
 
 interface ScatterChartProps {
   data: EnrichedTermData[]
@@ -43,10 +43,11 @@ function getClusterColor(clusterId: number | undefined): string {
   return CLUSTER_COLORS[(clusterId - 1) % CLUSTER_COLORS.length]
 }
 
-interface ClusterInfo {
+interface ScatterClusterInfo {
   clusterId: number
+  name: string
   termCount: number
-  topTerm: string
+  terms: string[]
   avgScore: number
   avgCTR: number
   totalImpressions: number
@@ -71,28 +72,17 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
   }, [data, highlightTerm])
 
   const clusterStats = useMemo(() => {
-    const stats = new Map<number, ClusterInfo>()
-    const unclustered: ClusterInfo = {
-      clusterId: 0,
-      termCount: 0,
-      topTerm: '-',
-      avgScore: 0,
-      avgCTR: 0,
-      totalImpressions: 0
-    }
+    const stats = new Map<number, ScatterClusterInfo>()
 
     sampledTerms.forEach(term => {
-      if (term.clusterId === undefined) {
-        unclustered.termCount++
-        unclustered.totalImpressions += term.impressions
-        return
-      }
+      if (term.clusterId === undefined) return
 
       if (!stats.has(term.clusterId)) {
         stats.set(term.clusterId, {
           clusterId: term.clusterId,
+          name: term.term,
           termCount: 0,
-          topTerm: term.term,
+          terms: [],
           avgScore: 0,
           avgCTR: 0,
           totalImpressions: 0
@@ -101,11 +91,12 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
 
       const cluster = stats.get(term.clusterId)!
       cluster.termCount++
+      cluster.terms.push(term.term)
       cluster.totalImpressions += term.impressions
       cluster.avgScore += term.score
       cluster.avgCTR += term.ctr
-      if (term.impressions > (data.find(t => t.term === cluster.topTerm)?.impressions ?? 0)) {
-        cluster.topTerm = term.term
+      if (term.impressions > (data.find(t => t.term === cluster.name)?.impressions ?? 0)) {
+        cluster.name = term.term
       }
     })
 
@@ -114,11 +105,11 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
       cluster.avgCTR /= cluster.termCount
     })
 
-    return { stats, unclustered }
+    return stats
   }, [sampledTerms, data])
 
   const uniqueClusters = useMemo(() => {
-    return Array.from(clusterStats.stats.keys()).sort((a, b) => a - b)
+    return Array.from(clusterStats.keys()).sort((a, b) => a - b)
   }, [clusterStats])
 
   const highlightedTermData = useMemo(() => {
@@ -175,13 +166,13 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                   style={{ backgroundColor: getClusterColor(highlightedTermData.clusterId) }}
                 />
                 <span className="text-[10px] font-medium text-primary">
-                  Cluster {highlightedTermData.clusterId}
+                  {highlightedTermData.clusterId}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  ({clusterStats.stats.get(highlightedTermData.clusterId)?.termCount ?? 0} termos)
+                  ({clusterStats.get(highlightedTermData.clusterId)?.termCount ?? 0} termos)
                 </span>
                 <span className="text-[10px] text-muted-foreground/70">
-                  · Top: {clusterStats.stats.get(highlightedTermData.clusterId)?.topTerm}
+                  · {clusterStats.get(highlightedTermData.clusterId)?.name}
                 </span>
               </div>
             ) : (
@@ -189,28 +180,13 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                 <div className="flex items-center gap-1.5">
                   <div className="h-2 w-2 rounded-full bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600" />
                   <span className="text-[10px] text-muted-foreground">
-                    All ({uniqueClusters.length} clusters)
+                    All ({uniqueClusters.length})
                   </span>
                 </div>
                 {uniqueClusters.slice(0, 5).map((clusterId) => {
-                  const stat = clusterStats.stats.get(clusterId)
+                  const stat = clusterStats.get(clusterId)
                   return (
-                    <div key={clusterId} className="group relative flex items-center gap-1.5">
-                      <div 
-                        className="h-2 w-2 rounded-full cursor-pointer" 
-                        style={{ backgroundColor: getClusterColor(clusterId) }}
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        C{clusterId} ({stat?.termCount ?? 0})
-                      </span>
-                      <div className="absolute bottom-full left-1/2 z-50 mb-2 hidden w-max -translate-x-1/2 flex-col gap-1 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-xl group-hover:flex">
-                        <p className="text-[10px] font-semibold text-foreground">Cluster {clusterId}</p>
-                        <p className="text-[10px] text-muted-foreground">Termos: {stat?.termCount}</p>
-                        <p className="text-[10px] text-muted-foreground">Top: {stat?.topTerm}</p>
-                        <p className="text-[10px] text-muted-foreground">Score médio: {stat?.avgScore.toFixed(3)}</p>
-                        <p className="text-[10px] text-muted-foreground">CTR médio: {stat?.avgCTR.toFixed(2)}%</p>
-                      </div>
-                    </div>
+                    <ClusterHoverModal key={clusterId} clusterId={clusterId} stat={stat} />
                   )
                 })}
                 {uniqueClusters.length > 5 && (
@@ -331,5 +307,52 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function ClusterHoverModal({ clusterId, stat }: { clusterId: number; stat: ScatterClusterInfo | undefined }) {
+  const [show, setShow] = useState(false)
+  
+  if (!stat) return null
+  
+  return (
+    <div 
+      className="group relative flex items-center gap-1.5"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <div 
+        className="h-2 w-2 rounded-full cursor-pointer" 
+        style={{ backgroundColor: getClusterColor(clusterId) }}
+      />
+      <span className="text-[10px] text-muted-foreground">
+        {clusterId} ({stat.termCount})
+      </span>
+      {show && (
+        <div className="absolute bottom-full left-1/2 z-50 mb-2 w-64 -translate-x-1/2 rounded-lg border border-border/80 bg-card px-3 py-2 shadow-xl">
+          <p className="mb-2 border-b border-border/50 pb-2 text-[10px] font-semibold text-foreground">
+            Cluster {clusterId}: {stat.name}
+          </p>
+          <p className="mb-2 text-[10px] text-muted-foreground">
+            Score médio: <span className="font-mono font-medium text-foreground">{stat.avgScore.toFixed(3)}</span> · CTR médio: <span className="font-mono font-medium text-foreground">{stat.avgCTR.toFixed(2)}%</span>
+          </p>
+          <div className="max-h-32 overflow-y-auto">
+            <p className="mb-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">Termos:</p>
+            <div className="flex flex-wrap gap-1">
+              {stat.terms.slice(0, 20).map((term) => (
+                <span key={term} className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {term}
+                </span>
+              ))}
+              {stat.terms.length > 20 && (
+                <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  +{stat.terms.length - 20} mais
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

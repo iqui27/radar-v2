@@ -53,6 +53,7 @@ export interface ClusterMetrics {
 
 export interface ClusterInfo {
   clusterId: number
+  name: string
   terms: EnrichedTermData[]
   avgScore: number
   avgCTR: number
@@ -400,6 +401,39 @@ export function assignClusterIds(
   }
   
   return result
+}
+
+// Get cluster statistics with name (top term by impressions)
+export function getClusterStats(data: EnrichedTermData[]): ClusterInfo[] {
+  const clusterMap = new Map<number, EnrichedTermData[]>()
+  
+  for (const term of data) {
+    if (term.clusterId === undefined) continue
+    if (!clusterMap.has(term.clusterId)) {
+      clusterMap.set(term.clusterId, [])
+    }
+    clusterMap.get(term.clusterId)!.push(term)
+  }
+  
+  const result: ClusterInfo[] = []
+  
+  for (const [clusterId, terms] of clusterMap) {
+    const sortedByImpressions = [...terms].sort((a, b) => b.impressions - a.impressions)
+    const topTerm = sortedByImpressions[0]?.term ?? `Cluster ${clusterId}`
+    
+    result.push({
+      clusterId,
+      name: topTerm,
+      terms: sortedByImpressions,
+      avgScore: terms.reduce((sum, t) => sum + t.score, 0) / terms.length,
+      avgCTR: terms.reduce((sum, t) => sum + t.ctr, 0) / terms.length,
+      totalImpressions: terms.reduce((sum, t) => sum + t.impressions, 0),
+      totalClicks: terms.reduce((sum, t) => sum + t.clicks, 0),
+      avgPosition: terms.reduce((sum, t) => sum + t.position, 0) / terms.length,
+    })
+  }
+  
+  return result.sort((a, b) => b.totalImpressions - a.totalImpressions)
 }
 
 // Get related clusters for a given term
