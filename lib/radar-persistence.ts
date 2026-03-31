@@ -1,14 +1,19 @@
 import {
   RADAR_STORAGE_VERSION,
+  legacyRadarPersistenceStateSchema,
   radarConfigSnapshotSchema,
-  radarPersistenceStateSchema,
+  radarGlobalConfigStateSchema,
+  radarLocalPersistenceStateSchema,
   radarSearchHistoryEntrySchema,
   type RadarConfigInput,
   type RadarConfigSnapshot,
+  type RadarGlobalConfigState,
+  type RadarLegacyPersistenceState,
   type RadarPersistenceState,
   type RadarSearchHistoryEntry,
   type RadarTermMetricSnapshot,
 } from './radar-schemas'
+import { DEFAULT_CONFIG, sanitizeRadarConfig } from './radar-data'
 
 const RADAR_STORAGE_KEY = 'radar:v2:state'
 
@@ -28,8 +33,6 @@ function createId(prefix: string): string {
 export function createEmptyRadarPersistenceState(): RadarPersistenceState {
   return {
     version: RADAR_STORAGE_VERSION,
-    currentConfig: null,
-    configSnapshots: [],
     searchHistory: [],
     dataSources: [],
     activeDataSourceId: null,
@@ -49,21 +52,85 @@ export function readRadarPersistenceState(): RadarPersistenceState {
 
   try {
     const parsed = JSON.parse(raw)
-    const result = radarPersistenceStateSchema.safeParse(parsed)
-    return result.success ? result.data : createEmptyRadarPersistenceState()
+    const localResult = radarLocalPersistenceStateSchema.safeParse(parsed)
+
+    if (localResult.success) {
+      return localResult.data
+    }
+
+    const legacyResult = legacyRadarPersistenceStateSchema.safeParse(parsed)
+
+    if (legacyResult.success) {
+      return extractLocalPersistenceState(legacyResult.data)
+    }
+
+    return createEmptyRadarPersistenceState()
   } catch {
     return createEmptyRadarPersistenceState()
   }
 }
 
 export function writeRadarPersistenceState(state: RadarPersistenceState): RadarPersistenceState {
-  const normalized = radarPersistenceStateSchema.parse(state)
+  const normalized = radarLocalPersistenceStateSchema.parse(state)
 
   if (isBrowser()) {
     window.localStorage.setItem(RADAR_STORAGE_KEY, JSON.stringify(normalized))
   }
 
   return normalized
+}
+
+export function readLegacyRadarPersistenceState(): RadarLegacyPersistenceState | null {
+  if (!isBrowser()) {
+    return null
+  }
+
+  const raw = window.localStorage.getItem(RADAR_STORAGE_KEY)
+
+  if (!raw) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(raw)
+    const result = legacyRadarPersistenceStateSchema.safeParse(parsed)
+    return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}
+
+function extractLocalPersistenceState(state: RadarLegacyPersistenceState): RadarPersistenceState {
+  return {
+    version: RADAR_STORAGE_VERSION,
+    searchHistory: state.searchHistory,
+    dataSources: state.dataSources,
+    activeDataSourceId: state.activeDataSourceId,
+  }
+}
+
+export function createEmptyRadarGlobalConfigState(): RadarGlobalConfigState {
+  return {
+    version: RADAR_STORAGE_VERSION,
+    currentConfig: sanitizeRadarConfig(DEFAULT_CONFIG),
+    configSnapshots: [],
+    updatedAt: new Date(0).toISOString(),
+  }
+}
+
+export function normalizeRadarGlobalConfigState(
+  input: Partial<RadarGlobalConfigState> | null | undefined
+): RadarGlobalConfigState {
+  const base = createEmptyRadarGlobalConfigState()
+
+  return radarGlobalConfigStateSchema.parse({
+    version: RADAR_STORAGE_VERSION,
+    currentConfig: sanitizeRadarConfig(input?.currentConfig ?? base.currentConfig),
+    configSnapshots: (input?.configSnapshots ?? base.configSnapshots).map((snapshot) =>
+      radarConfigSnapshotSchema.parse(snapshot)
+    ),
+    updatedAt: input?.updatedAt ?? new Date().toISOString(),
+  })
 }
 
 export function createRadarConfigSnapshot(input: {
@@ -87,10 +154,10 @@ export function createRadarConfigSnapshot(input: {
 }
 
 export function appendRadarConfigSnapshot(
-  state: RadarPersistenceState,
+  state: RadarGlobalConfigState,
   snapshot: RadarConfigSnapshot,
   limit: number = 50
-): RadarPersistenceState {
+): RadarGlobalConfigState {
   return {
     ...state,
     configSnapshots: [snapshot, ...state.configSnapshots].slice(0, limit),
@@ -98,12 +165,12 @@ export function appendRadarConfigSnapshot(
 }
 
 export function removeRadarConfigSnapshot(
-  state: RadarPersistenceState,
+  state: RadarGlobalConfigState,
   snapshotId: string
-): RadarPersistenceState {
+): RadarGlobalConfigState {
   return {
     ...state,
-    configSnapshots: state.configSnapshots.filter((snapshot) => snapshot.id !== snapshotId),
+    configSnapshots: state.configSnapshots.filter((snapshot: RadarConfigSnapshot) => snapshot.id !== snapshotId),
   }
 }
 
@@ -141,4 +208,77 @@ export function clearRadarPersistenceState(): void {
   if (isBrowser()) {
     window.localStorage.removeItem(RADAR_STORAGE_KEY)
   }
+}
+
+export interface RadarGlobalConfigResponse {
+  state: RadarGlobalConfigState
+  source: 'edge-config' | 'default'
+}
+
+async function parseGlobalConfigResponse(response: Response): Promise<RadarGlobalConfigResponse> {
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok || !payload) {
+    const errorMessage =
+      payload && typeof payload === 'object' && 'error' in payload
+        ? String(payload.error)
+        : 'Falha ao sincronizar a configuracao global.'
+
+    throw new Error(errorMessage)
+  }
+
+  return {
+    state: normalizeRadarGlobalConfigState(payload.state),
+    source: payload.source === 'edge-config' ? 'edge-config' : 'default',
+  }
+}
+
+export async function fetchRadarGlobalConfigState(): Promise<RadarGlobalConfigResponse> {
+  const response = await fetch('/api/radar-config', {
+    method: 'GET',
+    cache: 'no-store',
+  })
+
+  return parseGlobalConfigResponse(response)
+}
+
+export async function updateRadarGlobalConfig(
+  currentConfig: RadarConfigInput
+): Promise<RadarGlobalConfigState> {
+  const response = await fetch('/api/radar-config', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ currentConfig }),
+  })
+
+  const payload = await parseGlobalConfigResponse(response)
+  return payload.state
+}
+
+export async function appendRadarGlobalConfigSnapshot(
+  snapshot: RadarConfigSnapshot
+): Promise<RadarGlobalConfigState> {
+  const response = await fetch('/api/radar-config/snapshots', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ snapshot }),
+  })
+
+  const payload = await parseGlobalConfigResponse(response)
+  return payload.state
+}
+
+export async function deleteRadarGlobalConfigSnapshot(
+  snapshotId: string
+): Promise<RadarGlobalConfigState> {
+  const response = await fetch(`/api/radar-config/snapshots/${snapshotId}`, {
+    method: 'DELETE',
+  })
+
+  const payload = await parseGlobalConfigResponse(response)
+  return payload.state
 }

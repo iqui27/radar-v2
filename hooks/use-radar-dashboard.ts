@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import {
   DEFAULT_CONFIG,
   enrichTermData,
@@ -17,13 +18,17 @@ import {
   resolveTermMetricBaseline,
 } from '@/lib/radar-history'
 import {
-  appendRadarConfigSnapshot,
   appendRadarSearchHistoryEntry,
   createEmptyRadarPersistenceState,
   createRadarConfigSnapshot,
   createRadarSearchHistoryEntry,
+  createEmptyRadarGlobalConfigState,
+  deleteRadarGlobalConfigSnapshot,
+  fetchRadarGlobalConfigState,
+  readLegacyRadarPersistenceState,
   readRadarPersistenceState,
-  removeRadarConfigSnapshot,
+  updateRadarGlobalConfig,
+  appendRadarGlobalConfigSnapshot,
   writeRadarPersistenceState,
 } from '@/lib/radar-persistence'
 import {
@@ -48,8 +53,13 @@ export function useRadarDashboardState(
   const [persistenceState, setPersistenceState] = useState(() =>
     bootstrapRadarPersistenceState(createEmptyRadarPersistenceState())
   )
+  const [globalConfigState, setGlobalConfigState] = useState(() =>
+    createEmptyRadarGlobalConfigState()
+  )
   const [config, setConfig] = useState<RadarConfig>(() => sanitizeRadarConfig(DEFAULT_CONFIG))
   const [savedConfig, setSavedConfig] = useState<RadarConfig>(() => sanitizeRadarConfig(DEFAULT_CONFIG))
+  const [globalConfigStatus, setGlobalConfigStatus] = useState<'idle' | 'loading' | 'ready' | 'saving' | 'error'>('idle')
+  const [globalConfigError, setGlobalConfigError] = useState<string | null>(null)
 
   const activeDataSource = useMemo(
     () => getActiveRadarDataSource(persistenceState),
@@ -80,17 +90,84 @@ export function useRadarDashboardState(
   )
 
   const configHistory = useMemo(
-    () => getConfigSnapshotHistory(persistenceState.configSnapshots, savedConfig),
-    [persistenceState.configSnapshots, savedConfig]
+    () => getConfigSnapshotHistory(globalConfigState.configSnapshots, savedConfig),
+    [globalConfigState.configSnapshots, savedConfig]
   )
 
   useEffect(() => {
     const nextState = bootstrapRadarPersistenceState(readRadarPersistenceState())
-    const nextConfig = sanitizeRadarConfig(nextState.currentConfig ?? DEFAULT_CONFIG)
+    const legacyState = readLegacyRadarPersistenceState()
 
     setPersistenceState(nextState)
-    setConfig(nextConfig)
-    setSavedConfig(nextConfig)
+
+    let cancelled = false
+
+    const loadGlobalConfig = async () => {
+      setGlobalConfigStatus('loading')
+
+      try {
+        const payload = await fetchRadarGlobalConfigState()
+
+        let nextGlobalState = payload.state
+
+        if (
+          payload.source === 'default' &&
+          legacyState &&
+          (legacyState.currentConfig || legacyState.configSnapshots.length > 0)
+        ) {
+          nextGlobalState = await updateRadarGlobalConfig(
+            sanitizeRadarConfig(legacyState.currentConfig ?? DEFAULT_CONFIG)
+          )
+
+          if (legacyState.configSnapshots.length > 0) {
+            nextGlobalState = await updateRadarGlobalConfig(nextGlobalState.currentConfig)
+            nextGlobalState = await (await fetch('/api/radar-config', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                currentConfig: nextGlobalState.currentConfig,
+                configSnapshots: legacyState.configSnapshots,
+              }),
+            }).then(async (response) => {
+              if (!response.ok) {
+                const payload = await response.json().catch(() => null)
+                throw new Error(payload?.error ?? 'Falha ao migrar configuracao local anterior.')
+              }
+
+              const payload = await response.json()
+              return payload.state
+            }))
+          }
+        }
+
+        if (cancelled) return
+
+        const normalizedConfig = sanitizeRadarConfig(nextGlobalState.currentConfig)
+        setGlobalConfigState(nextGlobalState)
+        setConfig(normalizedConfig)
+        setSavedConfig(normalizedConfig)
+        setGlobalConfigError(null)
+        setGlobalConfigStatus('ready')
+      } catch (error) {
+        if (cancelled) return
+
+        const message =
+          error instanceof Error ? error.message : 'Falha ao carregar a configuracao global.'
+
+        setGlobalConfigState(createEmptyRadarGlobalConfigState())
+        setConfig(sanitizeRadarConfig(DEFAULT_CONFIG))
+        setSavedConfig(sanitizeRadarConfig(DEFAULT_CONFIG))
+        setGlobalConfigError(message)
+        setGlobalConfigStatus('error')
+        toast.error(message)
+      }
+    }
+
+    loadGlobalConfig()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const persistState = useCallback((nextState: typeof persistenceState) => {
@@ -104,7 +181,7 @@ export function useRadarDashboardState(
     setConfig(sanitizeRadarConfig(nextConfig))
   }, [])
 
-  const saveConfig = useCallback((selectedTermSnapshot?: EnrichedTermData | null) => {
+  const saveConfig = useCallback(async (selectedTermSnapshot?: EnrichedTermData | null) => {
     const normalizedConfig = sanitizeRadarConfig(config)
     const snapshot = createRadarConfigSnapshot({
       config: normalizedConfig,
@@ -114,30 +191,42 @@ export function useRadarDashboardState(
       termSnapshot: selectedTermSnapshot ? createTermMetricSnapshot(selectedTermSnapshot) : null,
     })
 
-    const nextState = appendRadarConfigSnapshot(
-      {
-        ...persistenceState,
-        currentConfig: normalizedConfig,
-      },
-      snapshot
-    )
-
-    persistState(nextState)
-    setConfig(normalizedConfig)
-    setSavedConfig(normalizedConfig)
-  }, [activeDataSource.id, config, persistState, persistenceState, selectedTerm])
-
-  const resetConfig = useCallback(() => {
-    const normalizedConfig = sanitizeRadarConfig(DEFAULT_CONFIG)
-    const nextState = {
-      ...persistenceState,
-      currentConfig: normalizedConfig,
+    try {
+      setGlobalConfigStatus('saving')
+      const nextGlobalState = await appendRadarGlobalConfigSnapshot(snapshot)
+      setGlobalConfigState(nextGlobalState)
+      setConfig(normalizedConfig)
+      setSavedConfig(normalizedConfig)
+      setGlobalConfigError(null)
+      setGlobalConfigStatus('ready')
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Falha ao salvar a configuracao global.'
+      setGlobalConfigError(message)
+      setGlobalConfigStatus('error')
+      toast.error(message)
     }
+  }, [activeDataSource.id, config, selectedTerm])
 
-    persistState(nextState)
-    setConfig(normalizedConfig)
-    setSavedConfig(normalizedConfig)
-  }, [persistState, persistenceState])
+  const resetConfig = useCallback(async () => {
+    const normalizedConfig = sanitizeRadarConfig(DEFAULT_CONFIG)
+
+    try {
+      setGlobalConfigStatus('saving')
+      const nextGlobalState = await updateRadarGlobalConfig(normalizedConfig)
+      setGlobalConfigState(nextGlobalState)
+      setConfig(normalizedConfig)
+      setSavedConfig(normalizedConfig)
+      setGlobalConfigError(null)
+      setGlobalConfigStatus('ready')
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Falha ao resetar a configuracao global.'
+      setGlobalConfigError(message)
+      setGlobalConfigStatus('error')
+      toast.error(message)
+    }
+  }, [])
 
   const changeActiveDataSource = useCallback(
     (sourceId: string) => {
@@ -229,8 +318,8 @@ export function useRadarDashboardState(
   )
 
   const restoreConfigSnapshot = useCallback(
-    (snapshotId: string) => {
-      const targetSnapshot = persistenceState.configSnapshots.find((snapshot) => snapshot.id === snapshotId)
+    async (snapshotId: string) => {
+      const targetSnapshot = globalConfigState.configSnapshots.find((snapshot) => snapshot.id === snapshotId)
 
       if (!targetSnapshot) {
         return
@@ -242,26 +331,47 @@ export function useRadarDashboardState(
           ? setActiveRadarDataSource(persistenceState, targetSnapshot.dataSourceId)
           : persistenceState
 
-      const nextState = {
-        ...nextStateBase,
-        currentConfig: normalizedConfig,
+      try {
+        setGlobalConfigStatus('saving')
+        if (nextStateBase !== persistenceState) {
+          persistState(nextStateBase)
+        }
+        const nextGlobalState = await updateRadarGlobalConfig(normalizedConfig)
+        setGlobalConfigState(nextGlobalState)
+        setConfig(normalizedConfig)
+        setSavedConfig(normalizedConfig)
+        setSelectedTerm(targetSnapshot.selectedTerm ?? null)
+        setSelectedHistoryEntryId(null)
+        setGlobalConfigError(null)
+        setGlobalConfigStatus('ready')
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Falha ao restaurar o snapshot global.'
+        setGlobalConfigError(message)
+        setGlobalConfigStatus('error')
+        toast.error(message)
       }
-
-      persistState(nextState)
-      setConfig(normalizedConfig)
-      setSavedConfig(normalizedConfig)
-      setSelectedTerm(targetSnapshot.selectedTerm ?? null)
-      setSelectedHistoryEntryId(null)
     },
-    [persistState, persistenceState]
+    [globalConfigState.configSnapshots, persistState, persistenceState]
   )
 
   const deleteConfigSnapshot = useCallback(
-    (snapshotId: string) => {
-      const nextState = removeRadarConfigSnapshot(persistenceState, snapshotId)
-      persistState(nextState)
+    async (snapshotId: string) => {
+      try {
+        setGlobalConfigStatus('saving')
+        const nextGlobalState = await deleteRadarGlobalConfigSnapshot(snapshotId)
+        setGlobalConfigState(nextGlobalState)
+        setGlobalConfigError(null)
+        setGlobalConfigStatus('ready')
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Falha ao apagar o snapshot global.'
+        setGlobalConfigError(message)
+        setGlobalConfigStatus('error')
+        toast.error(message)
+      }
     },
-    [persistState, persistenceState]
+    []
   )
 
   const selectedTermBaseline = useMemo(() => {
@@ -280,7 +390,7 @@ export function useRadarDashboardState(
     return resolveTermMetricBaseline({
       term: enrichedSelection,
       searchHistory: persistenceState.searchHistory,
-      configSnapshots: persistenceState.configSnapshots,
+      configSnapshots: globalConfigState.configSnapshots,
       currentConfig: config,
       dataSourceId: activeDataSource.id,
       currentHistoryEntryId: selectedHistoryEntryId,
@@ -288,7 +398,7 @@ export function useRadarDashboardState(
   }, [
     activeDataSource.id,
     config,
-    persistenceState.configSnapshots,
+    globalConfigState.configSnapshots,
     persistenceState.searchHistory,
     rawData,
     selectedHistoryEntryId,
@@ -299,9 +409,11 @@ export function useRadarDashboardState(
     activeDataSource,
     config,
     configHistory,
-    configSnapshots: persistenceState.configSnapshots,
+    configSnapshots: globalConfigState.configSnapshots,
     dataSources: sortedDataSources,
     dateRange,
+    globalConfigError,
+    globalConfigStatus,
     importDataSource,
     isDirty,
     rawData,

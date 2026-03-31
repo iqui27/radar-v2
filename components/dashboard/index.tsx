@@ -31,6 +31,8 @@ export function Dashboard() {
     dateRange,
     importDataSource,
     isDirty,
+    globalConfigError,
+    globalConfigStatus,
     rawData,
     searchHistoryEntries,
     selectedTerm,
@@ -236,6 +238,8 @@ export function Dashboard() {
               onSave={() => saveConfig(selectedEnrichedTerm)}
               onReset={resetConfig}
               isDirty={isDirty}
+              globalConfigError={globalConfigError}
+              globalConfigStatus={globalConfigStatus}
             />
           </TabsContent>
         </main>

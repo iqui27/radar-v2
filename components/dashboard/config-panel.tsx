@@ -46,6 +46,8 @@ interface ConfigPanelProps {
   onSave: () => void
   onReset: () => void
   isDirty: boolean
+  globalConfigStatus?: 'idle' | 'loading' | 'ready' | 'saving' | 'error'
+  globalConfigError?: string | null
 }
 
 export function ConfigPanel({
@@ -58,6 +60,8 @@ export function ConfigPanel({
   onSave,
   onReset,
   isDirty,
+  globalConfigStatus = 'idle',
+  globalConfigError = null,
 }: ConfigPanelProps) {
   const [search, setSearch] = useState('')
   const [activeSection, setActiveSection] = useState<'weights' | 'thresholds' | 'bands' | 'ctr' | 'semantic'>('weights')
@@ -473,6 +477,22 @@ export function ConfigPanel({
             Alteracoes nao salvas
           </p>
         )}
+
+        <div className="rounded-2xl border border-border/60 bg-muted/25 px-3 py-2 text-[11px] text-muted-foreground dark:border-white/6 dark:bg-background/20">
+          <div className="flex items-center justify-between gap-3">
+            <span>Configuracao global do workspace</span>
+            <span className="font-medium text-foreground/82">
+              {globalConfigStatus === 'loading' && 'sincronizando'}
+              {globalConfigStatus === 'saving' && 'salvando'}
+              {globalConfigStatus === 'ready' && 'global'}
+              {globalConfigStatus === 'error' && 'erro'}
+              {globalConfigStatus === 'idle' && 'pronta'}
+            </span>
+          </div>
+          {globalConfigError && (
+            <p className="mt-1 text-[10px] text-rose-400">{globalConfigError}</p>
+          )}
+        </div>
 
       </div>
       <div className="min-w-0 space-y-4">

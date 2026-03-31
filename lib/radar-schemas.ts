@@ -107,7 +107,14 @@ export const radarDataSourceRecordSchema = z.object({
     .default({}),
 })
 
-export const radarPersistenceStateSchema = z.object({
+export const radarLocalPersistenceStateSchema = z.object({
+  version: z.literal(RADAR_STORAGE_VERSION),
+  searchHistory: z.array(radarSearchHistoryEntrySchema).default([]),
+  dataSources: z.array(radarDataSourceRecordSchema).default([]),
+  activeDataSourceId: z.string().min(1).nullable().default(null),
+})
+
+export const legacyRadarPersistenceStateSchema = z.object({
   version: z.literal(RADAR_STORAGE_VERSION),
   currentConfig: radarConfigSchema.nullable().default(null),
   configSnapshots: z.array(radarConfigSnapshotSchema).default([]),
@@ -116,10 +123,19 @@ export const radarPersistenceStateSchema = z.object({
   activeDataSourceId: z.string().min(1).nullable().default(null),
 })
 
+export const radarGlobalConfigStateSchema = z.object({
+  version: z.literal(RADAR_STORAGE_VERSION),
+  currentConfig: radarConfigSchema,
+  configSnapshots: z.array(radarConfigSnapshotSchema).default([]),
+  updatedAt: z.string().datetime(),
+})
+
 export type RadarConfigInput = z.infer<typeof radarConfigSchema>
 export type RawTermDataInput = z.infer<typeof rawTermDataSchema>
 export type RadarTermMetricSnapshot = z.infer<typeof radarTermMetricSnapshotSchema>
 export type RadarSearchHistoryEntry = z.infer<typeof radarSearchHistoryEntrySchema>
 export type RadarConfigSnapshot = z.infer<typeof radarConfigSnapshotSchema>
 export type RadarDataSourceRecord = z.infer<typeof radarDataSourceRecordSchema>
-export type RadarPersistenceState = z.infer<typeof radarPersistenceStateSchema>
+export type RadarPersistenceState = z.infer<typeof radarLocalPersistenceStateSchema>
+export type RadarLegacyPersistenceState = z.infer<typeof legacyRadarPersistenceStateSchema>
+export type RadarGlobalConfigState = z.infer<typeof radarGlobalConfigStateSchema>
