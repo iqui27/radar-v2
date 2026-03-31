@@ -21,14 +21,28 @@ interface ScatterChartProps {
   highlightTerm?: string
 }
 
-const SCORE_COLORS = {
-  avoid: '#10B981',
-  evaluate: '#6366F1',
-  test: '#F59E0B',
-  invest: '#EF4444',
-}
-
 const MAX_SCATTER_TERMS = 240
+
+// Generate palette of 12 distinct colors for clusters
+const CLUSTER_COLORS = [
+  '#6366F1', // indigo
+  '#10B981', // emerald
+  '#F59E0B', // amber
+  '#EF4444', // red
+  '#8B5CF6', // violet
+  '#EC4899', // pink
+  '#14B8A6', // teal
+  '#F97316', // orange
+  '#06B6D4', // cyan
+  '#84CC16', // lime
+  '#A855F7', // purple
+  '#64748B', // slate
+]
+
+function getClusterColor(clusterId: number | undefined): string {
+  if (clusterId === undefined) return '#64748B' // slate for unclustered
+  return CLUSTER_COLORS[(clusterId - 1) % CLUSTER_COLORS.length]
+}
 
 export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
   const sampledTerms = useMemo(() => {
@@ -48,6 +62,17 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
     return sampled
   }, [data, highlightTerm])
 
+  // Get unique clusters for legend
+  const uniqueClusters = useMemo(() => {
+    const clusters = new Set<number>()
+    sampledTerms.forEach(term => {
+      if (term.clusterId !== undefined) {
+        clusters.add(term.clusterId)
+      }
+    })
+    return Array.from(clusters).sort((a, b) => a - b)
+  }, [sampledTerms])
+
   const chartData = useMemo(
     () =>
       sampledTerms.map((term) => ({
@@ -59,7 +84,8 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
         clicks: term.clicks,
         impressions: term.impressions,
         action: term.action.label,
-        color: getScoreColor(term.score),
+        clusterId: term.clusterId,
+        color: getClusterColor(term.clusterId),
       })),
     [sampledTerms]
   )
@@ -89,17 +115,22 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
             <div className="rounded-full border border-border/60 bg-background/85 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground dark:border-border/50 dark:bg-background/60">
               Universo total {data.length}
             </div>
-            {Object.entries(SCORE_COLORS).map(([key, color]) => (
-              <div key={key} className="flex items-center gap-1.5">
+            {uniqueClusters.slice(0, 6).map((clusterId) => (
+              <div key={clusterId} className="flex items-center gap-1.5">
                 <div 
                   className="h-2 w-2 rounded-full" 
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: getClusterColor(clusterId) }}
                 />
-                <span className="text-[10px] capitalize text-muted-foreground">
-                  {key === 'avoid' ? 'Evitar' : key === 'evaluate' ? 'Avaliar' : key === 'test' ? 'Testar' : 'Investir'}
+                <span className="text-[10px] text-muted-foreground">
+                  Cluster {clusterId}
                 </span>
               </div>
             ))}
+            {uniqueClusters.length > 6 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{uniqueClusters.length - 6} clusters
+              </span>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -168,6 +199,11 @@ export function RadarScatterChart({ data, highlightTerm }: ScatterChartProps) {
                             style={{ backgroundColor: d.color }}
                           />
                           <span className="text-sm font-medium">{d.term}</span>
+                          {d.clusterId !== undefined && (
+                            <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground">
+                              Cluster {d.clusterId}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                           <div className="text-muted-foreground">Score</div>

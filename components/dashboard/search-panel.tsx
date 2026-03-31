@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
-import { calculateClusterMetrics, formatNumber, getClusterTerms, getScoreColor, getScoreLabel } from '@/lib/radar-data'
+import { calculateClusterMetrics, formatNumber, getClusterTerms, getRelatedClusters, getScoreColor, getScoreLabel } from '@/lib/radar-data'
 
 interface BrandFilter {
   includeBB: boolean
@@ -392,12 +392,12 @@ function TermAnalysisCard({
 }) {
   const clusterMetrics = useMemo(() => calculateClusterMetrics(term, allData), [allData, term])
   const clusterTerms = useMemo(() => getClusterTerms(term, allData), [term, allData])
+  const relatedClusters = useMemo(() => getRelatedClusters(term, allData, 5), [term, allData])
   const [selectedTerm, ...relatedTerms] = clusterMetrics.terms
   const [isRelatedTermsOpen, setIsRelatedTermsOpen] = useState(false)
   const [isClusterTermsOpen, setIsClusterTermsOpen] = useState(false)
+  const [expandedClusterId, setExpandedClusterId] = useState<number | null>(null)
   const visibleRelatedTerms = relatedTerms.slice(0, 6)
-  const hiddenRelatedTerms = relatedTerms.slice(6)
-  const hiddenRelatedCount = Math.max(0, relatedTerms.length - visibleRelatedTerms.length)
   const isAggregateView = metricsView === 'aggregate'
   const currentScore = isAggregateView ? clusterMetrics.avgScore : selectedTerm.score
   const currentExpectedCTR = isAggregateView ? clusterMetrics.avgExpectedCTR : selectedTerm.expCTR
@@ -487,27 +487,83 @@ function TermAnalysisCard({
                 ? 'Metricas agregadas do termo selecionado com o cluster semantico relacionado'
                 : 'Metricas individuais do termo selecionado com acesso rapido aos relacionados'}
             </p>
-            {visibleRelatedTerms.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {visibleRelatedTerms.map((relatedTerm) => (
-                  <button
-                    key={relatedTerm.term}
-                    type="button"
-                    onClick={() => onTermSelect(relatedTerm)}
-                    className="rounded-full border border-white/8 bg-background/16 px-3 py-1 text-[11px] text-foreground/82 transition-colors hover:bg-background/24 hover:text-foreground"
-                  >
-                    {relatedTerm.term}
-                  </button>
-                ))}
-                {hiddenRelatedCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsRelatedTermsOpen(true)}
-                    className="rounded-full border border-white/8 bg-background/10 px-3 py-1 text-[11px] text-foreground/55 transition-[background-color,color,border-color,transform] duration-200 ease-out hover:border-white/15 hover:bg-background/18 hover:text-foreground/82"
-                  >
-                    +{hiddenRelatedCount}
-                  </button>
-                )}
+            {/* Related Clusters Section */}
+            {relatedClusters.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-foreground/60">
+                  Clusters relacionados
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {relatedClusters.slice(0, 4).map((cluster) => (
+                    <div key={cluster.clusterId} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedClusterId(expandedClusterId === cluster.clusterId ? null : cluster.clusterId)}
+                        className="flex items-center gap-2 rounded-full border border-white/8 bg-background/16 px-3 py-1 text-[11px] text-foreground/82 transition-colors hover:bg-background/24 hover:text-foreground"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: getScoreColor(cluster.avgScore) }}
+                        />
+                        Cluster {cluster.clusterId}
+                        <span className="text-[10px] text-muted-foreground">
+                          ({cluster.terms.length})
+                        </span>
+                      </button>
+                      {expandedClusterId === cluster.clusterId && (
+                        <div className="absolute left-0 top-full z-50 mt-2 min-w-[220px] rounded-xl border border-border/50 bg-card p-3 shadow-xl">
+                          <div className="mb-2 flex items-center justify-between border-b border-border/30 pb-2">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                              Cluster {cluster.clusterId}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              Score: {cluster.avgScore.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            {cluster.terms.slice(0, 8).map((term) => (
+                              <button
+                                key={term.term}
+                                type="button"
+                                onClick={() => {
+                                  setExpandedClusterId(null)
+                                  onTermSelect(term)
+                                }}
+                                className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs hover:bg-muted/50"
+                              >
+                                <span className="truncate text-foreground/80">{term.term}</span>
+                                <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                                  {term.position.toFixed(1)}
+                                </span>
+                              </button>
+                            ))}
+                            {cluster.terms.length > 8 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsRelatedTermsOpen(true)
+                                  setExpandedClusterId(null)
+                                }}
+                                className="w-full rounded-lg px-2 py-1 text-center text-[10px] text-muted-foreground hover:bg-muted/50"
+                              >
+                                +{cluster.terms.length - 8} mais
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {relatedClusters.length > 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsRelatedTermsOpen(true)}
+                      className="rounded-full border border-white/8 bg-background/10 px-3 py-1 text-[11px] text-foreground/55 transition-[background-color,color,border-color,transform] duration-200 ease-out hover:border-white/15 hover:bg-background/18 hover:text-foreground/82"
+                    >
+                      +{relatedClusters.length - 4}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -614,7 +670,7 @@ function TermAnalysisCard({
 
       <Dialog open={isRelatedTermsOpen} onOpenChange={setIsRelatedTermsOpen}>
         <DialogContent
-          className="max-w-md rounded-2xl border-border/50 p-0 shadow-2xl backdrop-blur-xl duration-200"
+          className="max-w-lg rounded-2xl border-border/50 p-0 shadow-2xl backdrop-blur-xl duration-200"
           style={{
             background: `linear-gradient(160deg, ${scoreColor}24 0%, ${scoreColor}18 38%, rgba(9,10,16,0.98) 100%)`,
           }}
@@ -631,45 +687,62 @@ function TermAnalysisCard({
             <div className="relative border-b border-border/40 px-5 py-4">
               <DialogHeader className="gap-1 text-left">
                 <DialogTitle className="text-base tracking-tight">
-                  Mais termos relacionados
+                  Termos do cluster
                 </DialogTitle>
                 <DialogDescription className="text-xs">
-                  Termos do mesmo cluster semantico para navegar sem poluir o card principal.
+                  Metricas detalhadas para navegar sem poluir o card principal.
                 </DialogDescription>
               </DialogHeader>
             </div>
 
             <div className="px-5 py-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {hiddenRelatedTerms.length} termos ocultos
-                </span>
-                <span
-                  className="rounded-full px-2 py-1 text-[10px] font-medium"
-                  style={{
-                    backgroundColor: `${scoreColor}18`,
-                    color: scoreColor,
-                  }}
-                >
-                  {getScoreLabel(currentScore)}
-                </span>
+              {/* Header */}
+              <div className="mb-3 grid grid-cols-5 gap-2 border-b border-border/30 pb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                <div className="col-span-2">Termo</div>
+                <div className="text-right">Pos</div>
+                <div className="text-right">CTR</div>
+                <div className="text-right">Score</div>
               </div>
 
-              <div className="flex max-h-[280px] flex-wrap gap-2 overflow-y-auto pr-1">
-                {hiddenRelatedTerms.map((relatedTerm, index) => (
+              {/* Terms list */}
+              <div className="max-h-[320px] space-y-1 overflow-y-auto pr-1">
+                {clusterTerms.map((term, index) => (
                   <button
-                    key={relatedTerm.term}
+                    key={term.term}
                     type="button"
                     onClick={() => {
                       setIsRelatedTermsOpen(false)
-                      onTermSelect(relatedTerm)
+                      onTermSelect(term)
                     }}
-                    className="rounded-full border border-border/50 bg-card/70 px-3 py-1.5 text-left text-xs text-foreground/85 shadow-sm transition-[transform,background-color,border-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:border-border hover:bg-card hover:text-foreground"
+                    className="grid w-full grid-cols-5 items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/50"
                     style={{
                       transitionDelay: `${Math.min(index * 18, 120)}ms`,
                     }}
                   >
-                    {relatedTerm.term}
+                    <div className="col-span-2 flex items-center gap-2">
+                      <div
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: getScoreColor(term.score) }}
+                      />
+                      <span className="truncate text-xs text-foreground/85">{term.term}</span>
+                    </div>
+                    <div className="text-right font-mono text-xs text-muted-foreground">
+                      {term.position.toFixed(1)}
+                    </div>
+                    <div className="text-right font-mono text-xs text-muted-foreground">
+                      {term.ctr.toFixed(2)}%
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: `${getScoreColor(term.score)}18`,
+                          color: getScoreColor(term.score),
+                        }}
+                      >
+                        {term.score.toFixed(2)}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
