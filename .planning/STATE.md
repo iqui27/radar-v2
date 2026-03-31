@@ -5,7 +5,7 @@ milestone_name: milestone
 status: milestone_complete
 stopped_at: Milestone v1.0 archived
 last_updated: "2026-03-31T12:40:00.000Z"
-last_activity: 2026-03-31 -- Milestone v1.0 archived
+last_activity: 2026-03-31 -- Completed quick task 260331-eo6: Melhorias na aba consulta
 progress:
   total_phases: 3
   completed_phases: 3
@@ -75,6 +75,12 @@ None yet.
 ### Blockers/Concerns
 
 - O filtro temporal atual continua sintetico; se historico de dataset crescer, comparacoes por periodo podem pedir refinamento futuro.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260331-eo6 | Melhorias na aba consulta: filtro de termos de marca, agrupamento de termos, resumo do cluster, box de termos do cluster, impressões como primeira métrica, scatter clusterizado, modal de métricas em termos relacionados, clusters relacionados | 2026-03-31 | 5d07fa8 | [260331-eo6-melhorias-na-aba-consulta-filtro-de-term](./quick/260331-eo6-melhorias-na-aba-consulta-filtro-de-term/) |
 
 ## Session Continuity
 
