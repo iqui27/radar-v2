@@ -4,9 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   ArrowRight,
   ArrowUpRight,
-  Clock3,
   Eye,
-  History,
   MousePointerClick,
   Search,
   Sparkles,
@@ -19,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
@@ -126,10 +125,68 @@ export function SearchPanel({
               ))}
             </div>
           )}
-          
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            {data.length} termos disponiveis para consulta
-          </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="text-[11px] text-muted-foreground">
+              {data.length} termos disponiveis para consulta
+            </p>
+
+            {historyEntries.length > 0 && (
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                  Recentes
+                </span>
+                {historyEntries.map((entry) => (
+                  <Tooltip key={entry.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => onHistorySelect(entry.id)}
+                        className="inline-flex max-w-[180px] items-center rounded-full border border-border/40 bg-card/55 px-2.5 py-1 text-[11px] text-foreground/78 transition-[border-color,background-color,color] hover:border-primary/25 hover:bg-card hover:text-foreground"
+                      >
+                        <span className="truncate">{entry.summaryLabel}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      sideOffset={8}
+                      className="max-w-[260px] rounded-xl border border-border/50 bg-card px-3 py-2 text-left text-foreground shadow-xl"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium text-foreground">
+                            {entry.summaryLabel}
+                          </p>
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                            {entry.interaction === 'selection' ? 'Selecao' : 'Busca'}
+                          </span>
+                        </div>
+                        {entry.selectedTerm && entry.query !== entry.selectedTerm && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Busca original: {entry.query}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          {entry.relativeLabel}
+                        </p>
+                        {entry.termSnapshot ? (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                            <span>Score {entry.termSnapshot.score.toFixed(2)}</span>
+                            <span>CTR {entry.termSnapshot.ctr.toFixed(2)}%</span>
+                            <span>{entry.termSnapshot.actionLabel}</span>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">
+                            Sem snapshot de metricas
+                          </p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {selectedTerm && (
@@ -171,58 +228,6 @@ export function SearchPanel({
           </div>
         )}
       </div>
-
-      {historyEntries.length > 0 && (
-        <Card className="border-border/40 bg-card/55">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium tracking-tight text-foreground">
-                    Historico recente
-                  </p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Retome buscas e selecoes recentes para comparar contexto sem recomecar a leitura.
-                </p>
-              </div>
-              <Badge variant="outline" className="w-fit border-border/50 bg-background/40 text-[10px]">
-                {historyEntries.length} contextos recentes
-              </Badge>
-            </div>
-
-            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-              {historyEntries.map((entry) => (
-                <button
-                  type="button"
-                  key={entry.id}
-                  onClick={() => onHistorySelect(entry.id)}
-                  className="rounded-2xl border border-border/40 bg-background/35 p-3 text-left transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-background/55"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      {entry.interaction === 'selection' ? 'Selecao' : 'Busca'}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Clock3 className="h-3 w-3" />
-                      {entry.relativeLabel}
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-1 text-sm font-medium text-foreground">
-                    {entry.summaryLabel}
-                  </p>
-                  <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
-                    {entry.termSnapshot
-                      ? `Score ${entry.termSnapshot.score.toFixed(2)} • CTR ${entry.termSnapshot.ctr.toFixed(2)}%`
-                      : 'Sem snapshot de metricas'}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Term Analysis Card */}
       {selectedTerm && (

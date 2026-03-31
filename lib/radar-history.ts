@@ -153,10 +153,7 @@ export function getRecentSearchHistory(
     .slice(0, limit)
     .map((entry) => ({
       ...entry,
-      summaryLabel:
-        entry.selectedTerm && entry.query !== entry.selectedTerm
-          ? `${entry.query} -> ${entry.selectedTerm}`
-          : entry.selectedTerm ?? entry.query,
+      summaryLabel: entry.selectedTerm ?? entry.query,
       relativeLabel: formatRelativeTimestamp(entry.createdAt),
     }))
 }
