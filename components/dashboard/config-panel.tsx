@@ -24,6 +24,7 @@ import {
   enrichTermData,
   getScoreColor,
   getWeight,
+  getClusterStats,
   type EnrichedTermData,
   type RadarConfig,
 } from '@/lib/radar-data'
@@ -154,6 +155,13 @@ export function ConfigPanel({
     onConfigChange({
       ...config,
       semantic: { ...config.semantic, maxClusterTerms: value }
+    })
+  }
+
+  const updateMaxTermsPerCluster = (value: number) => {
+    onConfigChange({
+      ...config,
+      semantic: { ...config.semantic, maxTermsPerCluster: value }
     })
   }
 
@@ -372,7 +380,7 @@ export function ConfigPanel({
                   showDecimal
                 />
                 <SliderRow
-                  label="Maximo de termos"
+                  label="Maximo de termos processados"
                   description="Limita quantos termos sao processados (prioriza por impressoes)"
                   value={config.semantic.maxClusterTerms}
                   min={50}
@@ -381,6 +389,48 @@ export function ConfigPanel({
                   onChange={updateMaxClusterTerms}
                   showInteger
                 />
+                <SliderRow
+                  label="Maximo de termos por cluster"
+                  description="Limita quantos termos exibidos por cluster na interface"
+                  value={config.semantic.maxTermsPerCluster}
+                  min={5}
+                  max={100}
+                  step={5}
+                  onChange={updateMaxTermsPerCluster}
+                  showInteger
+                />
+                <div className="rounded-2xl border border-border/60 bg-muted/35 p-3 dark:border-white/6 dark:bg-background/30">
+                  <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Amostra de clusters ({Math.min(3, getClusterStats(data).length)} de {getClusterStats(data).length})
+                  </p>
+                  <div className="space-y-3">
+                    {getClusterStats(data).slice(0, 3).map((cluster) => (
+                      <div key={cluster.clusterId} className="rounded-xl border border-border/40 bg-background/40 p-2.5 dark:border-white/6 dark:bg-background/20">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-[11px] font-medium text-foreground">{cluster.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {cluster.terms.length} termos · Score {cluster.avgScore.toFixed(2)} · CTR {cluster.avgCTR.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {cluster.terms.slice(0, config.semantic.maxTermsPerCluster).map((term) => (
+                            <span key={term.term} className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              {term.term}
+                            </span>
+                          ))}
+                          {cluster.terms.length > config.semantic.maxTermsPerCluster && (
+                            <span className="rounded bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              +{cluster.terms.length - config.semantic.maxTermsPerCluster}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {getClusterStats(data).length === 0 && (
+                      <p className="text-[11px] text-muted-foreground">Nenhum cluster encontrado. Ajuste os parametros.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

@@ -14,7 +14,8 @@ export const DEFAULT_CONFIG = {
   } as Record<number, number>,
   semantic: {
     similarityThreshold: 0.4,
-    maxClusterTerms: 500
+    maxClusterTerms: 500,
+    maxTermsPerCluster: 50
   }
 }
 
@@ -70,6 +71,7 @@ type RadarConfigLike = {
   semantic?: {
     similarityThreshold?: number
     maxClusterTerms?: number
+    maxTermsPerCluster?: number
   }
 }
 
@@ -105,6 +107,7 @@ function normalizeRadarConfigShape(config: RadarConfigLike) {
     semantic: {
       similarityThreshold: config.semantic?.similarityThreshold ?? DEFAULT_CONFIG.semantic.similarityThreshold,
       maxClusterTerms: config.semantic?.maxClusterTerms ?? DEFAULT_CONFIG.semantic.maxClusterTerms,
+      maxTermsPerCluster: config.semantic?.maxTermsPerCluster ?? DEFAULT_CONFIG.semantic.maxTermsPerCluster,
     },
   }
 }
@@ -124,6 +127,7 @@ export function validateRadarConfig(config: RadarConfigLike): RadarConfig {
     semantic: {
       similarityThreshold: parsed.semantic.similarityThreshold,
       maxClusterTerms: parsed.semantic.maxClusterTerms,
+      maxTermsPerCluster: parsed.semantic.maxTermsPerCluster,
     },
   }
 }
