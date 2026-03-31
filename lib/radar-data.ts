@@ -3,8 +3,8 @@ import { radarConfigSchema } from './radar-schemas'
 
 // RADAR Score Configuration
 export const DEFAULT_CONFIG = {
-  weights: [0.2, 0.6, 1.0],
-  posThresholds: [3, 10],
+  weights: [0.2, 0.45, 0.7, 1.0],
+  posThresholds: [3, 6, 10],
   scoreBands: [0.10, 0.30, 0.60],
   expectedCTR: {
     1: 39.8, 2: 18.7, 3: 10.2, 4: 7.2, 5: 5.1,
@@ -76,6 +76,30 @@ type RadarConfigLike = {
 }
 
 function normalizeRadarConfigShape(config: RadarConfigLike) {
+  const hasExpandedWeightBands = config.weights.length >= 4
+  const hasExpandedThresholds = config.posThresholds.length >= 3
+
+  const legacyTopThreshold = Number(config.posThresholds[0] ?? DEFAULT_CONFIG.posThresholds[0])
+  const legacyBottomThreshold = Number(
+    (hasExpandedThresholds ? config.posThresholds[2] : config.posThresholds[1]) ?? DEFAULT_CONFIG.posThresholds[2]
+  )
+  const legacyMiddleThreshold = Number(
+    (hasExpandedThresholds ? config.posThresholds[1] : undefined) ??
+      Math.max(legacyTopThreshold + 1, Math.min(legacyBottomThreshold - 1, 6))
+  )
+
+  const topWeight = Number(config.weights[0] ?? DEFAULT_CONFIG.weights[0])
+  const secondWeight = Number(
+    (hasExpandedWeightBands ? config.weights[1] : undefined) ??
+      ((topWeight + Number(config.weights[1] ?? DEFAULT_CONFIG.weights[2])) / 2).toFixed(2)
+  )
+  const thirdWeight = Number(
+    (hasExpandedWeightBands ? config.weights[2] : config.weights[1]) ?? DEFAULT_CONFIG.weights[2]
+  )
+  const bottomWeight = Number(
+    (hasExpandedWeightBands ? config.weights[3] : config.weights[2]) ?? DEFAULT_CONFIG.weights[3]
+  )
+
   const normalizedExpectedCTR = Object.fromEntries(
     Array.from({ length: 20 }, (_, index) => {
       const position = index + 1
@@ -90,14 +114,16 @@ function normalizeRadarConfigShape(config: RadarConfigLike) {
 
   return {
     weights: [
-      Number(config.weights[0] ?? DEFAULT_CONFIG.weights[0]),
-      Number(config.weights[1] ?? DEFAULT_CONFIG.weights[1]),
-      Number(config.weights[2] ?? DEFAULT_CONFIG.weights[2]),
-    ] as [number, number, number],
+      topWeight,
+      secondWeight,
+      thirdWeight,
+      bottomWeight,
+    ] as [number, number, number, number],
     posThresholds: [
-      Number(config.posThresholds[0] ?? DEFAULT_CONFIG.posThresholds[0]),
-      Number(config.posThresholds[1] ?? DEFAULT_CONFIG.posThresholds[1]),
-    ] as [number, number],
+      legacyTopThreshold,
+      legacyMiddleThreshold,
+      legacyBottomThreshold,
+    ] as [number, number, number],
     scoreBands: [
       Number(config.scoreBands[0] ?? DEFAULT_CONFIG.scoreBands[0]),
       Number(config.scoreBands[1] ?? DEFAULT_CONFIG.scoreBands[1]),
@@ -246,7 +272,8 @@ export function getExpCTR(position: number, config: RadarConfig = DEFAULT_CONFIG
 export function getWeight(position: number, config: RadarConfig = DEFAULT_CONFIG): number {
   if (position <= config.posThresholds[0]) return config.weights[0]
   if (position <= config.posThresholds[1]) return config.weights[1]
-  return config.weights[2]
+  if (position <= config.posThresholds[2]) return config.weights[2]
+  return config.weights[3]
 }
 
 export function calcScore(ctr: number, position: number, config: RadarConfig = DEFAULT_CONFIG): number {

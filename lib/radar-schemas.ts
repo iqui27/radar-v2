@@ -4,12 +4,12 @@ export const RADAR_STORAGE_VERSION = 1
 
 export const radarConfigSchema = z
   .object({
-    weights: z.array(z.number().min(0).max(2)).length(3),
+    weights: z.array(z.number().min(0).max(2)).length(4),
     posThresholds: z
       .array(z.number().int().min(1).max(20))
-      .length(2)
-      .superRefine(([first, second], ctx) => {
-        if (first >= second) {
+      .length(3)
+      .superRefine(([first, second, third], ctx) => {
+        if (!(first < second && second < third)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Position thresholds must be ascending',

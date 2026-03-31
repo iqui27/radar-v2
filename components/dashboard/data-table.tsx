@@ -67,25 +67,52 @@ export function DataTable({ data, onTermSelect }: DataTableProps) {
     }
   }
 
-  const SortHeader = ({ label, sortKeyName, className = '' }: { label: string; sortKeyName: SortKey; className?: string }) => (
-    <button
-      type="button"
-      className={`group flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground ${className}`}
-      onClick={() => handleSort(sortKeyName)}
-    >
-      {label}
-      <span className="opacity-0 transition-opacity group-hover:opacity-100">
-        {sortKey === sortKeyName ? (
-          sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3" />
-        )}
-      </span>
-    </button>
-  )
+  const SortHeader = ({
+    label,
+    sortKeyName,
+    align = 'left',
+    className = '',
+  }: {
+    label: string
+    sortKeyName: SortKey
+    align?: 'left' | 'center'
+    className?: string
+  }) => {
+    const icon = sortKey === sortKeyName
+      ? (sortAsc ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+      : <ArrowUpDown className="h-3 w-3" />
+
+    if (align === 'center') {
+      return (
+        <button
+          type="button"
+          className={`group grid w-full grid-cols-[1fr_auto_1fr] items-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground ${className}`}
+          onClick={() => handleSort(sortKeyName)}
+        >
+          <span className="col-start-2 text-center">{label}</span>
+          <span className="col-start-3 justify-self-start opacity-0 transition-opacity group-hover:opacity-100">
+            {icon}
+          </span>
+        </button>
+      )
+    }
+
+    return (
+      <button
+        type="button"
+        className={`group flex w-full items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground ${className}`}
+        onClick={() => handleSort(sortKeyName)}
+      >
+        {label}
+        <span className="opacity-0 transition-opacity group-hover:opacity-100">
+          {icon}
+        </span>
+      </button>
+    )
+  }
 
   return (
-    <Card className="overflow-hidden border-border/60 bg-card shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] dark:shadow-none">
+    <Card className="gap-0 overflow-hidden border-border/60 bg-card py-0 shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] dark:shadow-none">
       <CardHeader className="border-b border-border/60 bg-muted/30 px-5 py-4 dark:border-border/30 dark:bg-muted/20">
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -149,18 +176,18 @@ export function DataTable({ data, onTermSelect }: DataTableProps) {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="max-h-[420px] overflow-auto">
-          <table className="min-w-[860px] w-full text-sm">
+        <div className="max-h-[420px] overflow-auto bg-transparent">
+          <table className="min-w-[860px] w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-muted/90 backdrop-blur-sm dark:bg-muted/80">
               <tr className="border-b border-border/40 dark:border-border/30">
                 <th className="px-4 py-3 text-left"><SortHeader label="Termo" sortKeyName="term" /></th>
-                <th className="px-4 py-3 text-left"><SortHeader label="Score" sortKeyName="score" /></th>
-                <th className="hidden px-4 py-3 text-left md:table-cell"><SortHeader label="Acao" sortKeyName="action" /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Pos" sortKeyName="position" className="justify-end" /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="CTR" sortKeyName="ctr" className="justify-end" /></th>
-                <th className="hidden px-4 py-3 text-right lg:table-cell"><SortHeader label="CTR Esp." sortKeyName="expCTR" className="justify-end" /></th>
-                <th className="px-4 py-3 text-right"><SortHeader label="Cliques" sortKeyName="clicks" className="justify-end" /></th>
-                <th className="hidden px-4 py-3 text-right md:table-cell"><SortHeader label="Impr." sortKeyName="impressions" className="justify-end" /></th>
+                <th className="px-4 py-3 text-left"><SortHeader label="Score" sortKeyName="score" className="pl-2" /></th>
+                <th className="hidden px-4 py-3 text-center md:table-cell"><SortHeader label="Acao" sortKeyName="action" align="center" /></th>
+                <th className="px-4 py-3 text-center"><SortHeader label="Pos" sortKeyName="position" align="center" /></th>
+                <th className="px-4 py-3 text-center"><SortHeader label="CTR" sortKeyName="ctr" align="center" /></th>
+                <th className="hidden px-4 py-3 text-center lg:table-cell"><SortHeader label="CTR Esp." sortKeyName="expCTR" align="center" /></th>
+                <th className="px-4 py-3 text-center"><SortHeader label="Cliques" sortKeyName="clicks" align="center" /></th>
+                <th className="hidden px-4 py-3 text-center md:table-cell"><SortHeader label="Impr." sortKeyName="impressions" align="center" /></th>
               </tr>
             </thead>
             <tbody>
@@ -195,29 +222,31 @@ export function DataTable({ data, onTermSelect }: DataTableProps) {
                     </div>
                   </td>
                   <td className="hidden px-4 py-2.5 md:table-cell">
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      style={{ 
-                        backgroundColor: `${getScoreColor(d.score)}15`,
-                        color: getScoreColor(d.score)
-                      }}
-                    >
-                      {d.action.label}
-                    </span>
+                    <div className="flex justify-center">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ 
+                          backgroundColor: `${getScoreColor(d.score)}15`,
+                          color: getScoreColor(d.score)
+                        }}
+                      >
+                        {d.action.label}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">
+                  <td className="px-4 py-2.5 text-center font-mono text-xs text-muted-foreground">
                     {d.position.toFixed(1)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs text-muted-foreground">
+                  <td className="px-4 py-2.5 text-center font-mono text-xs text-muted-foreground">
                     {d.ctr.toFixed(1)}%
                   </td>
-                  <td className="hidden px-4 py-2.5 text-right font-mono text-xs text-muted-foreground lg:table-cell">
+                  <td className="hidden px-4 py-2.5 text-center font-mono text-xs text-muted-foreground lg:table-cell">
                     {d.expCTR.toFixed(1)}%
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono text-xs">
+                  <td className="px-4 py-2.5 text-center font-mono text-xs">
                     {d.clicks.toLocaleString()}
                   </td>
-                  <td className="hidden px-4 py-2.5 text-right font-mono text-xs text-muted-foreground md:table-cell">
+                  <td className="hidden px-4 py-2.5 text-center font-mono text-xs text-muted-foreground md:table-cell">
                     {d.impressions.toLocaleString()}
                   </td>
                 </tr>

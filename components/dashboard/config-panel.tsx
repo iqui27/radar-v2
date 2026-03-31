@@ -176,8 +176,8 @@ export function ConfigPanel({
   }
 
   const sections = [
-    { id: 'weights' as const, label: 'Pesos', icon: Sliders, meta: '3 pesos' },
-    { id: 'thresholds' as const, label: 'Limites', icon: Target, meta: '2 cortes' },
+    { id: 'weights' as const, label: 'Pesos', icon: Sliders, meta: '4 pesos' },
+    { id: 'thresholds' as const, label: 'Limites', icon: Target, meta: '3 cortes' },
     { id: 'bands' as const, label: 'Bandas', icon: BarChart3, meta: '4 zonas' },
     { id: 'ctr' as const, label: 'CTR', icon: Percent, meta: '20 pos' },
     { id: 'semantic' as const, label: 'Semantica', icon: Network, meta: 'cluster' },
@@ -255,12 +255,20 @@ export function ConfigPanel({
                   onChange={(value) => updateWeight(1, value)}
                 />
                 <SliderRow
-                  label={`${config.posThresholds[1] + 1}+`}
+                  label={`${config.posThresholds[1] + 1}-${config.posThresholds[2]}`}
                   value={config.weights[2]}
                   min={0}
                   max={2}
                   step={0.01}
                   onChange={(value) => updateWeight(2, value)}
+                />
+                <SliderRow
+                  label={`${config.posThresholds[2] + 1}+`}
+                  value={config.weights[3]}
+                  min={0}
+                  max={2}
+                  step={0.01}
+                  onChange={(value) => updateWeight(3, value)}
                 />
               </div>
             )}
@@ -277,12 +285,21 @@ export function ConfigPanel({
                   showInteger
                 />
                 <SliderRow
-                  label="Fim faixa media"
+                  label="Fim faixa intermediaria"
                   value={config.posThresholds[1]}
                   min={config.posThresholds[0] + 1}
-                  max={20}
+                  max={config.posThresholds[2] - 1}
                   step={1}
                   onChange={(value) => updateThreshold(1, value)}
+                  showInteger
+                />
+                <SliderRow
+                  label="Fim faixa expandida"
+                  value={config.posThresholds[2]}
+                  min={config.posThresholds[1] + 1}
+                  max={20}
+                  step={1}
+                  onChange={(value) => updateThreshold(2, value)}
                   showInteger
                 />
               </div>
@@ -499,9 +516,9 @@ export function ConfigPanel({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[560px] overflow-auto">
-              <table className="min-w-[720px] w-full text-xs">
+          <CardContent className="bg-muted/18 p-0 dark:bg-transparent">
+            <div className="max-h-[560px] overflow-auto bg-transparent">
+              <table className="min-w-[720px] w-full border-collapse text-xs">
                 <thead className="sticky top-0 z-10 bg-background/96 backdrop-blur-xl dark:bg-background/92">
                   <tr className="border-b border-border/60 dark:border-white/6">
                     <SortableHeader
@@ -519,9 +536,10 @@ export function ConfigPanel({
                       direction={sortDirection}
                       onClick={() => toggleSort('score')}
                       className="px-4 py-3"
+                      buttonClassName="pl-2"
                     />
                     <SortableHeader
-                      align="left"
+                      align="center"
                       label="Acao"
                       active={sortBy === 'action'}
                       direction={sortDirection}
@@ -529,7 +547,7 @@ export function ConfigPanel({
                       className="px-4 py-3"
                     />
                     <SortableHeader
-                      align="right"
+                      align="center"
                       label="Pos"
                       active={sortBy === 'position'}
                       direction={sortDirection}
@@ -537,7 +555,7 @@ export function ConfigPanel({
                       className="px-4 py-3"
                     />
                     <SortableHeader
-                      align="right"
+                      align="center"
                       label="CTR"
                       active={sortBy === 'ctr'}
                       direction={sortDirection}
@@ -570,19 +588,21 @@ export function ConfigPanel({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className="rounded-full border px-2 py-1 text-[9px] font-medium uppercase tracking-[0.12em]"
-                            style={{
-                              backgroundColor: `${scoreColor}12`,
-                              borderColor: `${scoreColor}18`,
-                              color: scoreColor,
-                            }}
-                          >
-                            {term.action.label}
-                          </span>
+                          <div className="flex justify-center">
+                            <span
+                              className="rounded-full border px-2 py-1 text-[9px] font-medium uppercase tracking-[0.12em]"
+                              style={{
+                                backgroundColor: `${scoreColor}12`,
+                                borderColor: `${scoreColor}18`,
+                                color: scoreColor,
+                              }}
+                            >
+                              {term.action.label}
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-muted-foreground">{term.position.toFixed(1)}</td>
-                        <td className="px-5 py-3 text-right font-mono text-muted-foreground">{term.ctr.toFixed(1)}%</td>
+                        <td className="px-4 py-3 text-center font-mono text-muted-foreground">{term.position.toFixed(1)}</td>
+                        <td className="px-5 py-3 text-center font-mono text-muted-foreground">{term.ctr.toFixed(1)}%</td>
                       </tr>
                     )
                   })}
@@ -804,13 +824,15 @@ function SortableHeader({
   direction,
   align,
   className,
+  buttonClassName,
   onClick,
 }: {
   label: string
   active: boolean
   direction: 'asc' | 'desc'
-  align: 'left' | 'right'
+  align: 'left' | 'right' | 'center'
   className?: string
+  buttonClassName?: string
   onClick: () => void
 }) {
   return (
@@ -818,9 +840,9 @@ function SortableHeader({
       <button
         type="button"
         onClick={onClick}
-        className={`group inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors ${
-          align === 'right' ? 'ml-auto flex' : 'flex'
-        } ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/88'}`}
+        className={`group flex w-full items-center gap-1 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors ${
+          align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'
+        } ${active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/88'} ${buttonClassName ?? ''}`}
       >
         <span>{label}</span>
         <ArrowUpDown className={`h-3 w-3 transition-opacity ${active ? 'opacity-100' : 'opacity-35 group-hover:opacity-70'}`} />
@@ -901,5 +923,6 @@ function ConfigChangePill({
 function getWeightBandLabel(position: number, config: RadarConfig) {
   if (position <= config.posThresholds[0]) return `Top 1-${config.posThresholds[0]}`
   if (position <= config.posThresholds[1]) return `${config.posThresholds[0] + 1}-${config.posThresholds[1]}`
-  return `${config.posThresholds[1] + 1}+`
+  if (position <= config.posThresholds[2]) return `${config.posThresholds[1] + 1}-${config.posThresholds[2]}`
+  return `${config.posThresholds[2] + 1}+`
 }
