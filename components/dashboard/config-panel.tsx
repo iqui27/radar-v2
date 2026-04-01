@@ -98,8 +98,8 @@ export function ConfigPanel({
       return data.find((term) => term.term === selectedPreviewTerm) ?? null
     }
 
-    return filteredData[0] ?? data[0] ?? null
-  }, [data, filteredData, selectedPreviewTerm])
+    return null
+  }, [data, selectedPreviewTerm])
 
   const configComparisons = useMemo(() => {
     if (!activePreviewTerm) {
@@ -517,6 +517,17 @@ export function ConfigPanel({
                     </span>
                   </div>
                 )}
+                {activePreviewTerm && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedPreviewTerm(null)}
+                    className="h-8 rounded-xl px-2.5 text-[11px] text-muted-foreground hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.04]"
+                  >
+                    Limpar foco
+                  </Button>
+                )}
                 <div className="relative w-full max-w-64">
                   <label htmlFor="preview-filter" className="sr-only">
                     Filtrar preview
@@ -595,7 +606,7 @@ export function ConfigPanel({
                         className={`cursor-pointer border-b border-border/50 transition-[background-color,box-shadow] hover:bg-black/[0.025] dark:border-white/6 dark:hover:bg-white/[0.03] ${
                           isActive ? 'bg-primary/[0.09] shadow-[inset_3px_0_0_rgba(99,102,241,0.8)] dark:bg-primary/[0.07]' : ''
                         }`}
-                        onClick={() => setSelectedPreviewTerm(term.term)}
+                        onClick={() => setSelectedPreviewTerm((current) => (current === term.term ? null : term.term))}
                       >
                         <td className="px-5 py-3 font-medium text-foreground/92">{term.term}</td>
                         <td className="px-4 py-3">
@@ -645,22 +656,32 @@ export function ConfigPanel({
                     </CardDescription>
                   </div>
                 </div>
-                {activePreviewTerm && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="radar-chip rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                      termo em foco: <span className="font-medium text-foreground">{activePreviewTerm.term}</span>
-                    </div>
-                    <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      score atual <span className="ml-1 font-medium text-foreground">{activePreviewTerm.score.toFixed(2)}</span>
-                    </div>
-                    <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      acao <span className="ml-1 font-medium text-foreground">{activePreviewTerm.action.label}</span>
-                    </div>
-                    <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      ctr esp. <span className="ml-1 font-medium text-foreground">{activePreviewTerm.expCTR.toFixed(2)}%</span>
-                    </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="radar-chip rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {activePreviewTerm ? (
+                      <>
+                        termo em foco: <span className="font-medium text-foreground">{activePreviewTerm.term}</span>
+                      </>
+                    ) : (
+                      <>
+                        termo em foco: <span className="font-medium text-foreground/72">nenhum</span>
+                      </>
+                    )}
                   </div>
-                )}
+                  {activePreviewTerm && (
+                    <>
+                      <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        score atual <span className="ml-1 font-medium text-foreground">{activePreviewTerm.score.toFixed(2)}</span>
+                      </div>
+                      <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        acao <span className="ml-1 font-medium text-foreground">{activePreviewTerm.action.label}</span>
+                      </div>
+                      <div className="radar-chip-soft rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        ctr esp. <span className="ml-1 font-medium text-foreground">{activePreviewTerm.expCTR.toFixed(2)}%</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-5">
@@ -674,7 +695,7 @@ export function ConfigPanel({
                 return (
                   <div
                     key={snapshot.id}
-                    className="rounded-[22px] border border-border/60 bg-white/72 px-4 py-4 transition-[border-color,background-color] hover:border-border hover:bg-white dark:border-white/6 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01))] dark:hover:border-white/10 dark:hover:bg-background/35"
+                    className="rounded-[22px] border border-border/60 bg-card/88 px-4 py-4 transition-[border-color,background-color] hover:border-border hover:bg-card dark:border-white/6 dark:bg-[linear-gradient(180deg,rgba(18,19,28,0.92),rgba(11,12,18,0.88))] dark:hover:border-white/10 dark:hover:bg-[linear-gradient(180deg,rgba(22,24,34,0.96),rgba(14,15,22,0.92))]"
                   >
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1 space-y-3">
@@ -708,7 +729,7 @@ export function ConfigPanel({
                         </div>
 
                         <div className="grid gap-2.5 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
-                          <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 dark:border-white/6 dark:bg-background/20">
+                          <div className="rounded-2xl border border-border/60 bg-muted/30 p-3 dark:border-white/6 dark:bg-white/[0.025]">
                             <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground">resumo da leitura</p>
                             <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
                               {activePreviewTerm && comparison ? (
@@ -823,7 +844,7 @@ function SliderRow({
   description?: string
 }) {
   return (
-    <div className="rounded-2xl border border-white/6 bg-background/20 px-3 py-3">
+    <div className="rounded-2xl border border-border/60 bg-muted/22 px-3 py-3 dark:border-white/6 dark:bg-white/[0.025]">
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-[11px] text-muted-foreground">{label}</span>
         <span className="font-mono text-xs font-semibold" style={color ? { color } : undefined}>
@@ -891,7 +912,7 @@ function ConfigDeltaPill({
       ? 'text-emerald-300'
       : 'text-rose-300'
   const bgColor = isNeutral
-    ? 'bg-background/25'
+    ? 'bg-background/25 dark:bg-white/[0.025]'
     : isPositive
       ? 'bg-emerald-500/10'
       : 'bg-rose-500/10'
