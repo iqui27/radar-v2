@@ -691,6 +691,7 @@ export function ConfigPanel({
                 const baselineBand = activePreviewTerm && comparison
                   ? getWeightBandLabel(activePreviewTerm.position, snapshot.config)
                   : null
+                const configDiff = getConfigDiffSummary(config, snapshot.config)
 
                 return (
                   <div
@@ -748,7 +749,28 @@ export function ConfigPanel({
                                   </div>
                                 </>
                               ) : (
-                                <span>Selecione um termo na tabela para comparar a leitura.</span>
+                                <>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span>Pesos alterados</span>
+                                    <span className="font-mono text-foreground">{configDiff.changedWeights}/{config.weights.length}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span>Limites alterados</span>
+                                    <span className="font-mono text-foreground">{configDiff.changedThresholds}/{config.posThresholds.length}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span>Bandas alteradas</span>
+                                    <span className="font-mono text-foreground">{configDiff.changedScoreBands}/{config.scoreBands.length}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span>CTR esperado</span>
+                                    <span className="font-mono text-foreground">{configDiff.changedExpectedCTR} posicoes</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span>Semantica</span>
+                                    <span className="font-mono text-foreground">{configDiff.changedSemanticSettings} ajustes</span>
+                                  </div>
+                                </>
                               )}
                             </div>
                           </div>
@@ -779,6 +801,38 @@ export function ConfigPanel({
                                 label="Peso"
                                 before={comparison.baselineWeight.toFixed(2)}
                                 after={comparison.currentWeight.toFixed(2)}
+                              />
+                            </>
+                          )}
+                          {!activePreviewTerm && (
+                            <>
+                              {config.weights.map((weight, index) => (
+                                <ConfigChangePill
+                                  key={`weight-${snapshot.id}-${index}`}
+                                  label={`Peso ${getWeightSlotLabel(index, config)}`}
+                                  before={snapshot.config.weights[index].toFixed(2)}
+                                  after={weight.toFixed(2)}
+                                />
+                              ))}
+                              <ConfigChangePill
+                                label="Limites"
+                                before={formatThresholds(snapshot.config.posThresholds)}
+                                after={formatThresholds(config.posThresholds)}
+                              />
+                              <ConfigChangePill
+                                label="Bandas"
+                                before={formatScoreBands(snapshot.config.scoreBands)}
+                                after={formatScoreBands(config.scoreBands)}
+                              />
+                              <ConfigChangePill
+                                label="CTR esperado"
+                                before={`${configDiff.changedExpectedCTR} pos. alteradas`}
+                                after={summarizeExpectedCTRDirection(config, snapshot.config)}
+                              />
+                              <ConfigChangePill
+                                label="Semantica"
+                                before={formatSemanticSettings(snapshot.config)}
+                                after={formatSemanticSettings(config)}
                               />
                             </>
                           )}
@@ -966,4 +1020,73 @@ function getWeightBandLabel(position: number, config: RadarConfig) {
   if (position <= config.posThresholds[1]) return `${config.posThresholds[0] + 1}-${config.posThresholds[1]}`
   if (position <= config.posThresholds[2]) return `${config.posThresholds[1] + 1}-${config.posThresholds[2]}`
   return `${config.posThresholds[2] + 1}+`
+}
+
+function getWeightSlotLabel(index: number, config: RadarConfig) {
+  if (index === 0) return `1-${config.posThresholds[0]}`
+  if (index === 1) return `${config.posThresholds[0] + 1}-${config.posThresholds[1]}`
+  if (index === 2) return `${config.posThresholds[1] + 1}-${config.posThresholds[2]}`
+  return `${config.posThresholds[2] + 1}+`
+}
+
+function formatThresholds(values: RadarConfig['posThresholds']) {
+  return values.join(' / ')
+}
+
+function formatScoreBands(values: RadarConfig['scoreBands']) {
+  return values.map((value) => value.toFixed(2)).join(' / ')
+}
+
+function formatSemanticSettings(config: RadarConfig) {
+  return [
+    `sim ${config.semantic.similarityThreshold.toFixed(2)}`,
+    `cluster ${config.semantic.maxClusterTerms}`,
+    `termos ${config.semantic.maxTermsPerCluster}`,
+  ].join(' / ')
+}
+
+function summarizeExpectedCTRDirection(current: RadarConfig, baseline: RadarConfig) {
+  const changedEntries = Array.from({ length: 20 }, (_, index) => {
+    const key = index + 1
+    return {
+      current: current.expectedCTR[key] ?? 0,
+      baseline: baseline.expectedCTR[key] ?? 0,
+    }
+  }).filter((entry) => Math.abs(entry.current - entry.baseline) > 0.0001)
+
+  if (changedEntries.length === 0) {
+    return 'sem alteracao'
+  }
+
+  const totalDelta = changedEntries.reduce((acc, entry) => acc + (entry.current - entry.baseline), 0)
+
+  if (Math.abs(totalDelta) <= 0.0001) {
+    return `${changedEntries.length} pos. ajustadas`
+  }
+
+  return totalDelta > 0
+    ? `${changedEntries.length} pos. acima`
+    : `${changedEntries.length} pos. abaixo`
+}
+
+function getConfigDiffSummary(current: RadarConfig, baseline: RadarConfig) {
+  const changedWeights = current.weights.filter((value, index) => Math.abs(value - baseline.weights[index]) > 0.0001).length
+  const changedThresholds = current.posThresholds.filter((value, index) => value !== baseline.posThresholds[index]).length
+  const changedScoreBands = current.scoreBands.filter((value, index) => Math.abs(value - baseline.scoreBands[index]) > 0.0001).length
+  const changedExpectedCTR = Array.from({ length: 20 }, (_, index) => index + 1).filter((key) =>
+    Math.abs((current.expectedCTR[key] ?? 0) - (baseline.expectedCTR[key] ?? 0)) > 0.0001
+  ).length
+  const changedSemanticSettings = [
+    current.semantic.similarityThreshold !== baseline.semantic.similarityThreshold,
+    current.semantic.maxClusterTerms !== baseline.semantic.maxClusterTerms,
+    current.semantic.maxTermsPerCluster !== baseline.semantic.maxTermsPerCluster,
+  ].filter(Boolean).length
+
+  return {
+    changedWeights,
+    changedThresholds,
+    changedScoreBands,
+    changedExpectedCTR,
+    changedSemanticSettings,
+  }
 }
