@@ -163,7 +163,7 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
         action: term.action.label,
         actionType: term.action.type,
         clusterId: term.clusterId,
-        color: colorBy === 'cluster' ? getClusterColor(term.clusterId) : getScoreColor(term.score),
+        color: colorBy === 'cluster' ? getClusterColor(term.clusterId) : getScoreColor(term.score, undefined, term.position),
       })),
     [visibleTerms, colorBy]
   )

@@ -79,7 +79,7 @@ function createClusterLayout(
     y: centerY,
     radius: getRadiusFromImpressions(selectedTerm.impressions, { isCenter: true }),
     isCenter: true,
-    color: getScoreColor(selectedTerm.score),
+    color: getScoreColor(selectedTerm.score, undefined, selectedTerm.position),
   }
 
   const nodes: Node[] = [centerNode]
@@ -107,7 +107,7 @@ function createClusterLayout(
       y: centerY + Math.sin(angle) * orbitRadius,
       radius: nodeRadius,
       isCenter: false,
-      color: getScoreColor(term.score),
+      color: getScoreColor(term.score, undefined, term.position),
     }
 
     nodes.push(node)
@@ -535,7 +535,7 @@ export function TermCluster({ selectedTerm, allTerms, onTermSelect }: TermCluste
                           className="h-5 text-[10px]"
                           style={{ borderColor: node.color, color: node.color }}
                         >
-                          {node.score.toFixed(1)} - {getScoreLabel(node.score)}
+                          {node.score.toFixed(1)} - {getScoreLabel(node.score, undefined, node.position)}
                         </Badge>
                       </div>
                       <div className="flex justify-between gap-4">

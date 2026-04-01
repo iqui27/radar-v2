@@ -6,6 +6,7 @@ export const DEFAULT_CONFIG = {
   weights: [0.2, 0.45, 0.7, 1.0],
   posThresholds: [3, 6, 10],
   scoreBands: [0.10, 0.30, 0.60],
+  forceInvestAbovePosition: 7,
   expectedCTR: {
     1: 39.8, 2: 18.7, 3: 10.2, 4: 7.2, 5: 5.1,
     6: 4.4, 7: 3.0, 8: 2.1, 9: 1.9, 10: 1.6,
@@ -67,6 +68,7 @@ type RadarConfigLike = {
   weights: number[]
   posThresholds: number[]
   scoreBands: number[]
+  forceInvestAbovePosition?: number
   expectedCTR: Record<number | string, number>
   semantic?: {
     similarityThreshold?: number
@@ -129,6 +131,7 @@ function normalizeRadarConfigShape(config: RadarConfigLike) {
       Number(config.scoreBands[1] ?? DEFAULT_CONFIG.scoreBands[1]),
       Number(config.scoreBands[2] ?? DEFAULT_CONFIG.scoreBands[2]),
     ] as [number, number, number],
+    forceInvestAbovePosition: Number(config.forceInvestAbovePosition ?? DEFAULT_CONFIG.forceInvestAbovePosition),
     expectedCTR: normalizedExpectedCTR,
     semantic: {
       similarityThreshold: config.semantic?.similarityThreshold ?? DEFAULT_CONFIG.semantic.similarityThreshold,
@@ -147,6 +150,7 @@ export function validateRadarConfig(config: RadarConfigLike): RadarConfig {
     weights: [...parsed.weights] as RadarConfig['weights'],
     posThresholds: [...parsed.posThresholds] as RadarConfig['posThresholds'],
     scoreBands: [...parsed.scoreBands] as RadarConfig['scoreBands'],
+    forceInvestAbovePosition: parsed.forceInvestAbovePosition,
     expectedCTR: Object.fromEntries(
       Object.entries(parsed.expectedCTR).map(([key, value]) => [Number(key), value])
     ) as RadarConfig['expectedCTR'],
@@ -172,6 +176,7 @@ export function sanitizeRadarConfig(config: Partial<RadarConfigLike> | null | un
       weights: config.weights ?? DEFAULT_CONFIG.weights,
       posThresholds: config.posThresholds ?? DEFAULT_CONFIG.posThresholds,
       scoreBands: config.scoreBands ?? DEFAULT_CONFIG.scoreBands,
+      forceInvestAbovePosition: config.forceInvestAbovePosition ?? DEFAULT_CONFIG.forceInvestAbovePosition,
       expectedCTR: {
         ...DEFAULT_CONFIG.expectedCTR,
         ...(config.expectedCTR ?? {}),
@@ -282,7 +287,19 @@ export function calcScore(ctr: number, position: number, config: RadarConfig = D
   return Math.max(0, Math.min(1, weight * (1 - (ctr / expCTR))))
 }
 
-export function getScoreAction(score: number, config: RadarConfig = DEFAULT_CONFIG): EnrichedTermData['action'] {
+export function getScoreAction(
+  score: number,
+  config: RadarConfig = DEFAULT_CONFIG,
+  position?: number
+): EnrichedTermData['action'] {
+  if (typeof position === 'number' && position > config.forceInvestAbovePosition) {
+    return {
+      type: 'invest',
+      label: 'Investir',
+      description: `Posicao acima de ${config.forceInvestAbovePosition}. Forte oportunidade de investimento.`,
+    }
+  }
+
   const [b1, b2, b3] = config.scoreBands
   if (score <= b1) return { type: 'avoid', label: 'Evitar', description: 'Orgânico forte. Investimento desnecessário.' }
   if (score <= b2) return { type: 'evaluate', label: 'Avaliar', description: 'Boa posição, CTR abaixo. Avaliar reforço.' }
@@ -290,7 +307,9 @@ export function getScoreAction(score: number, config: RadarConfig = DEFAULT_CONF
   return { type: 'invest', label: 'Investir', description: 'Baixa visibilidade. Forte oportunidade.' }
 }
 
-export function getScoreColor(score: number, config: RadarConfig = DEFAULT_CONFIG): string {
+export function getScoreColor(score: number, config: RadarConfig = DEFAULT_CONFIG, position?: number): string {
+  if (typeof position === 'number' && position > config.forceInvestAbovePosition) return '#EF4444'
+
   const [b1, b2, b3] = config.scoreBands
   if (score <= b1) return '#10B981' // emerald - avoid
   if (score <= b2) return '#6366F1' // indigo - evaluate
@@ -298,7 +317,9 @@ export function getScoreColor(score: number, config: RadarConfig = DEFAULT_CONFI
   return '#EF4444' // red - invest
 }
 
-export function getScoreLabel(score: number, config: RadarConfig = DEFAULT_CONFIG): string {
+export function getScoreLabel(score: number, config: RadarConfig = DEFAULT_CONFIG, position?: number): string {
+  if (typeof position === 'number' && position > config.forceInvestAbovePosition) return 'Investir'
+
   const [b1, b2, b3] = config.scoreBands
   if (score <= b1) return 'Evitar'
   if (score <= b2) return 'Avaliar'
@@ -386,7 +407,7 @@ export function enrichTermData(data: RawTermData[], config: RadarConfig = DEFAUL
   return data.map(d => {
     const score = calcScore(d.ctr, d.position, config)
     const expCTR = getExpCTR(d.position, config)
-    const action = getScoreAction(score, config)
+    const action = getScoreAction(score, config, d.position)
     return { ...d, score, expCTR, action }
   }).sort((a, b) => b.score - a.score)
 }
@@ -579,7 +600,7 @@ export function calculateClusterMetrics(
     avgCTR,
     avgExpectedCTR,
     avgScore,
-    action: getScoreAction(avgScore, config),
+    action: getScoreAction(avgScore, config, avgPosition),
     clusterId: selectedTerm.clusterId,
   }
 }

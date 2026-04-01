@@ -214,7 +214,7 @@ export function DataTable({ data, onTermSelect }: DataTableProps) {
                     <div className="flex items-center gap-2">
                       <div 
                         className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: getScoreColor(d.score) }}
+                        style={{ backgroundColor: getScoreColor(d.score, undefined, d.position) }}
                       />
                       <span className="font-mono text-xs">
                         {d.score.toFixed(3)}
@@ -226,8 +226,8 @@ export function DataTable({ data, onTermSelect }: DataTableProps) {
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-medium"
                         style={{ 
-                          backgroundColor: `${getScoreColor(d.score)}15`,
-                          color: getScoreColor(d.score)
+                          backgroundColor: `${getScoreColor(d.score, undefined, d.position)}15`,
+                          color: getScoreColor(d.score, undefined, d.position)
                         }}
                       >
                         {d.action.label}

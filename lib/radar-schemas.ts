@@ -27,6 +27,7 @@ export const radarConfigSchema = z
           })
         }
       }),
+    forceInvestAbovePosition: z.number().int().min(1).max(20).default(7),
     expectedCTR: z
       .record(z.string(), z.number().positive().max(100))
       .superRefine((value, ctx) => {

@@ -99,7 +99,7 @@ export function ScoreDistributionChart({ data }: DistributionChartProps) {
                         <div className="flex items-center gap-2">
                           <div 
                             className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: getScoreColor(d.score) }}
+                            style={{ backgroundColor: getScoreColor(d.score, undefined, d.position) }}
                           />
                           <span className="text-xs font-medium">Score {d.range}</span>
                         </div>
@@ -148,7 +148,7 @@ export function TopTermsChart({ data, title = 'Top Oportunidades RADAR', limit =
       clicks: d.clicks,
       impressions: d.impressions,
       opportunity: getOpportunityIndex(d),
-      color: getScoreColor(d.score),
+      color: getScoreColor(d.score, undefined, d.position),
     }))
 
   const chartHeight = Math.max(184, topData.length * 34)

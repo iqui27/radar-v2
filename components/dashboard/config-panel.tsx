@@ -143,6 +143,10 @@ export function ConfigPanel({
     onConfigChange({ ...config, scoreBands: nextBands })
   }
 
+  const updateForceInvestAbovePosition = (value: number) => {
+    onConfigChange({ ...config, forceInvestAbovePosition: value })
+  }
+
   const updateExpectedCTR = (position: number, value: number) => {
     const nextExpectedCTR = { ...config.expectedCTR, [position]: value }
     onConfigChange({ ...config, expectedCTR: nextExpectedCTR })
@@ -181,7 +185,7 @@ export function ConfigPanel({
 
   const sections = [
     { id: 'weights' as const, label: 'Pesos', icon: Sliders, meta: '4 pesos' },
-    { id: 'thresholds' as const, label: 'Limites', icon: Target, meta: '3 cortes' },
+    { id: 'thresholds' as const, label: 'Limites', icon: Target, meta: '4 regras' },
     { id: 'bands' as const, label: 'Bandas', icon: BarChart3, meta: '4 zonas' },
     { id: 'ctr' as const, label: 'CTR', icon: Percent, meta: '20 pos' },
     { id: 'semantic' as const, label: 'Semantica', icon: Network, meta: 'cluster' },
@@ -305,6 +309,16 @@ export function ConfigPanel({
                   step={1}
                   onChange={(value) => updateThreshold(2, value)}
                   showInteger
+                />
+                <SliderRow
+                  label="Forcar investir acima de"
+                  value={config.forceInvestAbovePosition}
+                  min={1}
+                  max={20}
+                  step={1}
+                  onChange={(value) => updateForceInvestAbovePosition(value)}
+                  showInteger
+                  description="Se a posicao for maior que este valor, a recomendacao vira Investir independentemente do score."
                 />
               </div>
             )}
@@ -598,7 +612,7 @@ export function ConfigPanel({
                 <tbody>
                   {filteredData.map((term) => {
                     const isActive = activePreviewTerm?.term === term.term
-                    const scoreColor = getScoreColor(term.score)
+                    const scoreColor = getScoreColor(term.score, undefined, term.position)
 
                     return (
                       <tr
@@ -763,6 +777,12 @@ export function ConfigPanel({
                                     <span className="font-mono text-foreground">{configDiff.changedScoreBands}/{config.scoreBands.length}</span>
                                   </div>
                                   <div className="flex items-center justify-between gap-3">
+                                    <span>Regra investir</span>
+                                    <span className="font-mono text-foreground">
+                                      {snapshot.config.forceInvestAbovePosition} → {config.forceInvestAbovePosition}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
                                     <span>CTR esperado</span>
                                     <span className="font-mono text-foreground">{configDiff.changedExpectedCTR} posicoes</span>
                                   </div>
@@ -823,6 +843,11 @@ export function ConfigPanel({
                                 label="Bandas"
                                 before={formatScoreBands(snapshot.config.scoreBands)}
                                 after={formatScoreBands(config.scoreBands)}
+                              />
+                              <ConfigChangePill
+                                label="Investir apos pos."
+                                before={String(snapshot.config.forceInvestAbovePosition)}
+                                after={String(config.forceInvestAbovePosition)}
                               />
                               <ConfigChangePill
                                 label="CTR esperado"
@@ -1073,6 +1098,7 @@ function getConfigDiffSummary(current: RadarConfig, baseline: RadarConfig) {
   const changedWeights = current.weights.filter((value, index) => Math.abs(value - baseline.weights[index]) > 0.0001).length
   const changedThresholds = current.posThresholds.filter((value, index) => value !== baseline.posThresholds[index]).length
   const changedScoreBands = current.scoreBands.filter((value, index) => Math.abs(value - baseline.scoreBands[index]) > 0.0001).length
+  const changedForceInvestRule = current.forceInvestAbovePosition !== baseline.forceInvestAbovePosition ? 1 : 0
   const changedExpectedCTR = Array.from({ length: 20 }, (_, index) => index + 1).filter((key) =>
     Math.abs((current.expectedCTR[key] ?? 0) - (baseline.expectedCTR[key] ?? 0)) > 0.0001
   ).length
@@ -1086,6 +1112,7 @@ function getConfigDiffSummary(current: RadarConfig, baseline: RadarConfig) {
     changedWeights,
     changedThresholds,
     changedScoreBands,
+    changedForceInvestRule,
     changedExpectedCTR,
     changedSemanticSettings,
   }

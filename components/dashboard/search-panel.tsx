@@ -153,7 +153,7 @@ export function SearchPanel({
                   <div className="flex items-center gap-2">
                     <div 
                       className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: getScoreColor(term.score) }}
+                      style={{ backgroundColor: getScoreColor(term.score, undefined, term.position) }}
                     />
                     <span className="font-mono text-xs text-muted-foreground">
                       {term.score.toFixed(2)}
@@ -404,7 +404,8 @@ function TermAnalysisCard({
   const currentExpectedCTR = isAggregateView ? clusterMetrics.avgExpectedCTR : selectedTerm.expCTR
   const currentCTR = isAggregateView ? clusterMetrics.avgCTR : selectedTerm.ctr
   const currentAction = isAggregateView ? clusterMetrics.action : selectedTerm.action
-  const scoreColor = getScoreColor(currentScore)
+  const currentPosition = isAggregateView ? clusterMetrics.avgPosition : selectedTerm.position
+  const scoreColor = getScoreColor(currentScore, undefined, currentPosition)
   const fillWidth = Math.max(5, currentScore * 100)
 
   const stats = [
@@ -508,7 +509,13 @@ function TermAnalysisCard({
                         >
                           <span
                             className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: getScoreColor(cluster.avgScore) }}
+                            style={{
+                              backgroundColor: getScoreColor(
+                                cluster.avgScore,
+                                undefined,
+                                cluster.terms.reduce((sum, term) => sum + term.position, 0) / Math.max(cluster.terms.length, 1)
+                              ),
+                            }}
                           />
                           {cluster.name}
                           <span className="text-[10px] text-muted-foreground">
@@ -647,7 +654,7 @@ function TermAnalysisCard({
               className="mt-2 border-0 text-[10px] font-semibold uppercase"
               style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
             >
-              {getScoreLabel(currentScore)}
+              {getScoreLabel(currentScore, undefined, currentPosition)}
             </Badge>
           </div>
         </div>
@@ -731,7 +738,7 @@ function TermAnalysisCard({
                     <div className="col-span-2 flex items-center gap-2">
                       <div
                         className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: getScoreColor(term.score) }}
+                        style={{ backgroundColor: getScoreColor(term.score, undefined, term.position) }}
                       />
                       <span className="truncate text-xs text-foreground/85">{term.term}</span>
                     </div>
@@ -745,8 +752,8 @@ function TermAnalysisCard({
                       <span
                         className="rounded-full px-2 py-0.5 text-[10px] font-medium"
                         style={{
-                          backgroundColor: `${getScoreColor(term.score)}18`,
-                          color: getScoreColor(term.score),
+                          backgroundColor: `${getScoreColor(term.score, undefined, term.position)}18`,
+                          color: getScoreColor(term.score, undefined, term.position),
                         }}
                       >
                         {term.score.toFixed(2)}
