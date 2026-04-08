@@ -27,6 +27,8 @@ import {
   getClusterStats,
   type EnrichedTermData,
   type RadarConfig,
+  SCORE_ACTION_COLORS,
+  SCORE_GRADIENT,
 } from '@/lib/radar-data'
 import { Network } from 'lucide-react'
 import {
@@ -332,7 +334,7 @@ export function ConfigPanel({
                   max={config.scoreBands[1] - 0.01}
                   step={0.01}
                   onChange={(value) => updateScoreBand(0, value)}
-                  color="#10B981"
+                  color={SCORE_ACTION_COLORS.avoid}
                 />
                 <SliderRow
                   label="Limite avaliar"
@@ -341,7 +343,7 @@ export function ConfigPanel({
                   max={config.scoreBands[2] - 0.01}
                   step={0.01}
                   onChange={(value) => updateScoreBand(1, value)}
-                  color="#6366F1"
+                  color={SCORE_ACTION_COLORS.evaluate}
                 />
                 <SliderRow
                   label="Limite testar"
@@ -350,14 +352,14 @@ export function ConfigPanel({
                   max={1}
                   step={0.01}
                   onChange={(value) => updateScoreBand(2, value)}
-                  color="#F59E0B"
+                  color={SCORE_ACTION_COLORS.test}
                 />
                 <div className="rounded-2xl border border-border/60 bg-muted/35 p-3 dark:border-white/6 dark:bg-background/30">
-                  <div className="flex h-2.5 overflow-hidden rounded-full bg-muted/70 dark:bg-background/80">
-                    <div className="bg-[#10B981]" style={{ width: `${config.scoreBands[0] * 100}%` }} />
-                    <div className="bg-[#6366F1]" style={{ width: `${(config.scoreBands[1] - config.scoreBands[0]) * 100}%` }} />
-                    <div className="bg-[#F59E0B]" style={{ width: `${(config.scoreBands[2] - config.scoreBands[1]) * 100}%` }} />
-                    <div className="bg-[#EF4444]" style={{ width: `${(1 - config.scoreBands[2]) * 100}%` }} />
+                  <div className="flex h-2.5 overflow-hidden rounded-full bg-muted/70 dark:bg-background/80" style={{ backgroundImage: SCORE_GRADIENT }}>
+                    <div style={{ width: `${config.scoreBands[0] * 100}%`, backgroundColor: SCORE_ACTION_COLORS.avoid }} />
+                    <div style={{ width: `${(config.scoreBands[1] - config.scoreBands[0]) * 100}%`, backgroundColor: SCORE_ACTION_COLORS.evaluate }} />
+                    <div style={{ width: `${(config.scoreBands[2] - config.scoreBands[1]) * 100}%`, backgroundColor: SCORE_ACTION_COLORS.test }} />
+                    <div style={{ width: `${(1 - config.scoreBands[2]) * 100}%`, backgroundColor: SCORE_ACTION_COLORS.invest }} />
                   </div>
                   <div className="mt-2 flex justify-between text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                     <span>Evitar</span>

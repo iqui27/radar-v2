@@ -64,6 +64,15 @@ export interface ClusterInfo {
   avgPosition: number
 }
 
+export const SCORE_ACTION_COLORS = {
+  avoid: '#9BCF75',
+  evaluate: '#D9D86A',
+  test: '#F4B24C',
+  invest: '#E46147',
+} as const
+
+export const SCORE_GRADIENT = `linear-gradient(90deg, ${SCORE_ACTION_COLORS.invest} 0%, ${SCORE_ACTION_COLORS.test} 34%, ${SCORE_ACTION_COLORS.evaluate} 68%, ${SCORE_ACTION_COLORS.avoid} 100%)`
+
 type RadarConfigLike = {
   weights: number[]
   posThresholds: number[]
@@ -308,13 +317,13 @@ export function getScoreAction(
 }
 
 export function getScoreColor(score: number, config: RadarConfig = DEFAULT_CONFIG, position?: number): string {
-  if (typeof position === 'number' && position > config.forceInvestAbovePosition) return '#EF4444'
+  if (typeof position === 'number' && position > config.forceInvestAbovePosition) return SCORE_ACTION_COLORS.invest
 
   const [b1, b2, b3] = config.scoreBands
-  if (score <= b1) return '#10B981' // emerald - avoid
-  if (score <= b2) return '#6366F1' // indigo - evaluate
-  if (score <= b3) return '#F59E0B' // amber - test
-  return '#EF4444' // red - invest
+  if (score <= b1) return SCORE_ACTION_COLORS.avoid
+  if (score <= b2) return SCORE_ACTION_COLORS.evaluate
+  if (score <= b3) return SCORE_ACTION_COLORS.test
+  return SCORE_ACTION_COLORS.invest
 }
 
 export function getScoreLabel(score: number, config: RadarConfig = DEFAULT_CONFIG, position?: number): string {

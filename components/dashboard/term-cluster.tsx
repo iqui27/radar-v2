@@ -9,7 +9,7 @@ import {
   ZoomOut,
   Maximize2
 } from 'lucide-react'
-import { EnrichedTermData, getRelatedTerms, getScoreLabel, getScoreColor } from '@/lib/radar-data'
+import { EnrichedTermData, getRelatedTerms, getScoreLabel, getScoreColor, SCORE_ACTION_COLORS } from '@/lib/radar-data'
 
 interface Node {
   id: string
@@ -564,10 +564,10 @@ export function TermCluster({ selectedTerm, allTerms, onTermSelect }: TermCluste
           {/* Legend */}
           <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 rounded-lg border border-border/30 bg-card/80 p-3 backdrop-blur-sm">
             {[
-              { label: 'Evitar', color: '#10B981' },
-              { label: 'Avaliar', color: '#6366F1' },
-              { label: 'Testar', color: '#F59E0B' },
-              { label: 'Investir', color: '#EF4444' },
+              { label: 'Evitar', color: SCORE_ACTION_COLORS.avoid },
+              { label: 'Avaliar', color: SCORE_ACTION_COLORS.evaluate },
+              { label: 'Testar', color: SCORE_ACTION_COLORS.test },
+              { label: 'Investir', color: SCORE_ACTION_COLORS.invest },
             ].map(item => (
               <div key={item.label} className="flex items-center gap-2">
                 <div 

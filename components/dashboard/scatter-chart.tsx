@@ -16,7 +16,7 @@ import { Check, X, ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { EnrichedTermData } from '@/lib/radar-data'
-import { formatNumber, getClusterStats, getScoreColor } from '@/lib/radar-data'
+import { formatNumber, getClusterStats, getScoreColor, SCORE_ACTION_COLORS } from '@/lib/radar-data'
 
 interface ScatterChartProps {
   data: EnrichedTermData[]
@@ -175,10 +175,10 @@ export function RadarScatterChart({ data, highlightTerm, onHighlightTermChange }
   const impressionCoverage = totalImpressions > 0 ? sampledImpressions / totalImpressions : 1
 
   const ACTION_COLORS = {
-    avoid: '#10B981',
-    evaluate: '#6366F1',
-    test: '#F59E0B',
-    invest: '#EF4444',
+    avoid: SCORE_ACTION_COLORS.avoid,
+    evaluate: SCORE_ACTION_COLORS.evaluate,
+    test: SCORE_ACTION_COLORS.test,
+    invest: SCORE_ACTION_COLORS.invest,
   }
 
   return (

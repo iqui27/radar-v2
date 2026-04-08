@@ -13,17 +13,10 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import type { EnrichedTermData } from '@/lib/radar-data'
-import { getScoreColor } from '@/lib/radar-data'
+import { getScoreColor, SCORE_ACTION_COLORS } from '@/lib/radar-data'
 
 interface DistributionChartProps {
   data: EnrichedTermData[]
-}
-
-const SCORE_COLORS = {
-  avoid: '#10B981',
-  evaluate: '#6366F1',
-  test: '#F59E0B',
-  invest: '#EF4444',
 }
 
 export function ScoreDistributionChart({ data }: DistributionChartProps) {
@@ -73,10 +66,10 @@ export function ScoreDistributionChart({ data }: DistributionChartProps) {
             <AreaChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={SCORE_COLORS.avoid} stopOpacity={0.8} />
-                  <stop offset="30%" stopColor={SCORE_COLORS.evaluate} stopOpacity={0.8} />
-                  <stop offset="60%" stopColor={SCORE_COLORS.test} stopOpacity={0.8} />
-                  <stop offset="100%" stopColor={SCORE_COLORS.invest} stopOpacity={0.8} />
+                  <stop offset="0%" stopColor={SCORE_ACTION_COLORS.avoid} stopOpacity={0.8} />
+                  <stop offset="38%" stopColor={SCORE_ACTION_COLORS.evaluate} stopOpacity={0.8} />
+                  <stop offset="68%" stopColor={SCORE_ACTION_COLORS.test} stopOpacity={0.8} />
+                  <stop offset="100%" stopColor={SCORE_ACTION_COLORS.invest} stopOpacity={0.8} />
                 </linearGradient>
               </defs>
               <XAxis

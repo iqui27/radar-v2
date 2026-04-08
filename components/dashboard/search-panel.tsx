@@ -26,7 +26,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TermCluster } from './term-cluster'
 import type { EnrichedTermData } from '@/lib/radar-data'
 import type { SearchHistoryListItem, TermMetricBaseline } from '@/lib/radar-history'
-import { calculateClusterMetrics, formatNumber, getClusterTerms, getRelatedClusters, getScoreColor, getScoreLabel } from '@/lib/radar-data'
+import { calculateClusterMetrics, formatNumber, getClusterTerms, getRelatedClusters, getScoreColor, getScoreLabel, SCORE_GRADIENT } from '@/lib/radar-data'
 
 interface BrandFilter {
   includeBB: boolean
@@ -670,7 +670,7 @@ function TermAnalysisCard({
               className="h-full rounded-full transition-[width,box-shadow] duration-1000 ease-out"
               style={{ 
                 width: `${fillWidth}%`, 
-                backgroundColor: scoreColor,
+                backgroundImage: SCORE_GRADIENT,
                 boxShadow: `0 0 10px ${scoreColor}50`
               }}
             />

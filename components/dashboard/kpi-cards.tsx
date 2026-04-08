@@ -1,6 +1,6 @@
 'use client'
 
-import { formatNumber } from '@/lib/radar-data'
+import { formatNumber, SCORE_ACTION_COLORS, SCORE_GRADIENT } from '@/lib/radar-data'
 import { TrendingUp, MousePointerClick, Eye, Target, Percent, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
 interface KPICardsProps {
@@ -106,16 +106,16 @@ export function ScoreDistribution({ distribution }: { distribution: KPICardsProp
   const total = distribution.avoid + distribution.evaluate + distribution.test + distribution.invest
   
   const items = [
-    { label: 'Evitar', value: distribution.avoid, color: '#10B981', bgColor: 'bg-[#10B981]' },
-    { label: 'Avaliar', value: distribution.evaluate, color: '#6366F1', bgColor: 'bg-[#6366F1]' },
-    { label: 'Testar', value: distribution.test, color: '#F59E0B', bgColor: 'bg-[#F59E0B]' },
-    { label: 'Investir', value: distribution.invest, color: '#EF4444', bgColor: 'bg-[#EF4444]' },
+    { label: 'Evitar', value: distribution.avoid, color: SCORE_ACTION_COLORS.avoid },
+    { label: 'Avaliar', value: distribution.evaluate, color: SCORE_ACTION_COLORS.evaluate },
+    { label: 'Testar', value: distribution.test, color: SCORE_ACTION_COLORS.test },
+    { label: 'Investir', value: distribution.invest, color: SCORE_ACTION_COLORS.invest },
   ]
 
   return (
     <div className="flex flex-col gap-3">
       {/* Progress bar */}
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted" style={{ backgroundImage: SCORE_GRADIENT }}>
         {items.map((item) => (
           <div
             key={item.label}
@@ -132,7 +132,7 @@ export function ScoreDistribution({ distribution }: { distribution: KPICardsProp
       <div className="flex flex-wrap items-center gap-4">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-1.5">
-            <div className={`h-2 w-2 rounded-full ${item.bgColor}`} />
+            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
             <span className="text-[11px] text-muted-foreground">
               {item.label}
             </span>
