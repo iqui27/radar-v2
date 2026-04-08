@@ -456,12 +456,13 @@ function TermAnalysisCard({
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <Badge
-                className="border-0 text-[10px] font-semibold"
+                className="border-0 text-[10px] font-semibold dark:text-white"
                 style={{
-                  backgroundColor: `color-mix(in oklab, ${scoreColor} 16%, white)`,
+                  backgroundColor: `color-mix(in oklab, ${scoreColor} 18%, white)`,
                   color: scoreColor,
                   boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${scoreColor} 42%, white)`,
                 }}
+                data-slot="analysis-badge"
               >
                 Analise
               </Badge>
