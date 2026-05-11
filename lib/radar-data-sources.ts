@@ -1,4 +1,5 @@
 import { RAW_RADAR_DATA } from './radar-data-source'
+import { DEFAULT_PRODUCT_SOURCE_ID, PRODUCT_RADAR_DATA } from './radar-product-data'
 import {
   type RadarDataSourceRecord,
   type RadarPersistenceState,
@@ -7,7 +8,7 @@ import {
 } from './radar-schemas'
 import { readRadarPersistenceState, writeRadarPersistenceState } from './radar-persistence'
 
-const EMBEDDED_SOURCE_ID = 'embedded-radar-90d-v1'
+const LEGACY_EMBEDDED_SOURCE_ID = 'embedded-radar-90d-v1'
 
 function createSourceId(prefix: string): string {
   const seed =
@@ -35,11 +36,31 @@ function getNextSourceVersion(state: RadarPersistenceState, sourceKey: string): 
   )
 }
 
+export function createProductRadarDataSources(): RadarDataSourceRecord[] {
+  return PRODUCT_RADAR_DATA.map((product) =>
+    radarDataSourceRecordSchema.parse({
+      id: product.id,
+      version: 1,
+      label: product.label,
+      kind: 'embedded',
+      createdAt: product.createdAt,
+      recordCount: product.data.length,
+      isActive: product.id === DEFAULT_PRODUCT_SOURCE_ID,
+      data: product.data,
+      meta: {
+        sourceKey: product.sourceKey,
+        sourceVersion: 1,
+        notes: 'Dataset embarcado por produto para preview RADAR.',
+      },
+    })
+  )
+}
+
 export function createEmbeddedRadarDataSource(
   data: RawTermDataInput[] = RAW_RADAR_DATA
 ): RadarDataSourceRecord {
   return radarDataSourceRecordSchema.parse({
-    id: EMBEDDED_SOURCE_ID,
+    id: LEGACY_EMBEDDED_SOURCE_ID,
     version: 1,
     label: 'Base embarcada 90 dias',
     kind: 'embedded',
@@ -59,15 +80,42 @@ export function bootstrapRadarPersistenceState(
   state: RadarPersistenceState,
   fallbackData: RawTermDataInput[] = RAW_RADAR_DATA
 ): RadarPersistenceState {
-  if (state.dataSources.length > 0) {
-    return ensureSingleActiveRadarDataSource(state)
+  const productSources = createProductRadarDataSources()
+  const productIds = new Set(productSources.map((source) => source.id))
+  const importedSources = state.dataSources.filter((source) => source.kind === 'imported')
+  const currentActiveId =
+    state.activeDataSourceId && state.activeDataSourceId !== LEGACY_EMBEDDED_SOURCE_ID
+      ? state.activeDataSourceId
+      : null
+  const activeDataSourceId =
+    currentActiveId && (productIds.has(currentActiveId) || importedSources.some((source) => source.id === currentActiveId))
+      ? currentActiveId
+      : DEFAULT_PRODUCT_SOURCE_ID
+
+  const nextState = {
+    ...state,
+    dataSources: [
+      ...productSources.map((source) => ({
+        ...source,
+        isActive: source.id === activeDataSourceId,
+      })),
+      ...importedSources.map((source) => ({
+        ...source,
+        isActive: source.id === activeDataSourceId,
+      })),
+    ],
+    activeDataSourceId,
   }
 
-  return {
-    ...state,
-    dataSources: [createEmbeddedRadarDataSource(fallbackData)],
-    activeDataSourceId: EMBEDDED_SOURCE_ID,
+  if (nextState.dataSources.length === 0) {
+    return {
+      ...state,
+      dataSources: [createEmbeddedRadarDataSource(fallbackData)],
+      activeDataSourceId: LEGACY_EMBEDDED_SOURCE_ID,
+    }
   }
+
+  return ensureSingleActiveRadarDataSource(nextState)
 }
 
 export function ensureSingleActiveRadarDataSource(

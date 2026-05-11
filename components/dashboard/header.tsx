@@ -2,14 +2,18 @@
 
 import { useMemo, useRef, useState } from 'react'
 import {
+  Banknote,
   CalendarRange,
+  Building2,
   Check,
   ChevronDown,
+  CreditCard,
   Database,
   FileUp,
   Moon,
   Radar,
   Sun,
+  UserRound,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -44,6 +48,21 @@ function formatSourceDate(value: string): string {
   }).format(new Date(value))
 }
 
+function getProductIcon(source: RadarDataSourceRecord) {
+  switch (source.id) {
+    case 'product-cards':
+      return CreditCard
+    case 'product-credit':
+      return Banknote
+    case 'product-conta-pf':
+      return UserRound
+    case 'product-conta-pj':
+      return Building2
+    default:
+      return Database
+  }
+}
+
 export function Header({
   theme,
   dateRange,
@@ -62,6 +81,9 @@ export function Header({
   } | null>(null)
 
   const selectedRange = getDashboardDateRange(dateRange)
+  const productSources = dataSources.filter((source) => source.kind === 'embedded')
+  const importedSources = dataSources.filter((source) => source.kind === 'imported')
+  const ActiveProductIcon = getProductIcon(activeDataSource)
   const periodLabel = useMemo(() => {
     const formatter = new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
@@ -150,21 +172,21 @@ export function Header({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="group flex min-w-[196px] items-center gap-2.5 rounded-[16px] border border-transparent bg-transparent px-2.5 py-1.5 text-left transition-[border-color,background-color,transform] duration-200 hover:border-black/8 hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:hover:border-white/6 dark:hover:bg-background/45"
-                  aria-label={`Origem ativa: ${activeDataSource.label}`}
+                  className="group flex min-w-[178px] items-center gap-2.5 rounded-[16px] border border-transparent bg-transparent px-2.5 py-1.5 text-left transition-[border-color,background-color,transform] duration-200 hover:border-black/8 hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:hover:border-white/6 dark:hover:bg-background/45"
+                  aria-label={`Produto ativo: ${activeDataSource.label}`}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/12 text-primary ring-1 ring-primary/15">
-                    <Database className="h-3.5 w-3.5" />
+                    <ActiveProductIcon className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      Origem ativa
+                      Produto
                     </div>
                     <div className="mt-0.5 truncate text-[13px] font-semibold tracking-tight text-foreground">
                       {activeDataSource.label}
                     </div>
                     <div className="mt-0.5 text-[10px] text-muted-foreground">
-                      {activeDataSource.recordCount} termos • {formatSourceDate(activeDataSource.createdAt)}
+                      {activeDataSource.recordCount} termos
                     </div>
                   </div>
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -176,16 +198,17 @@ export function Header({
               >
                 <div className="px-3 pb-2 pt-1">
                   <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-                    Origens de dados
+                    Produtos
                   </p>
                   <p className="mt-1 text-sm font-medium tracking-tight text-foreground">
-                    Troque a base ativa ou importe um novo CSV
+                    Troque a base principal da previa
                   </p>
                 </div>
 
-                <div className="space-y-1">
-                  {dataSources.map((source) => {
+                <div className="grid grid-cols-2 gap-1.5">
+                  {productSources.map((source) => {
                     const isActive = source.id === activeDataSource.id
+                    const ProductIcon = getProductIcon(source)
                     return (
                       <button
                         key={source.id}
@@ -194,26 +217,22 @@ export function Header({
                           setImportFeedback(null)
                           onDataSourceChange(source.id)
                         }}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-[background-color,border-color,color] ${
+                        className={`flex min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-[background-color,border-color,color] ${
                           isActive
                             ? 'bg-primary/10 text-foreground'
                             : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                         }`}
                       >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium">{source.label}</span>
-                            <span className="rounded-full border border-border/50 bg-background/70 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                              {source.kind === 'embedded' ? 'Base' : 'Importada'}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {source.recordCount} termos • {formatSourceDate(source.createdAt)}
-                          </p>
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-background/70 text-primary ring-1 ring-border/50">
+                          <ProductIcon className="h-3.5 w-3.5" />
                         </div>
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border border-border/50 bg-background/80">
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{source.label}</span>
+                          <span className="block text-[10px] text-muted-foreground">{source.recordCount} termos</span>
+                        </div>
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border/50 bg-background/80">
                           {isActive ? (
-                            <Check className="h-3.5 w-3.5 text-primary" />
+                            <Check className="h-3 w-3 text-primary" />
                           ) : (
                             <span className="h-2 w-2 rounded-full bg-muted-foreground/25" />
                           )}
@@ -224,6 +243,39 @@ export function Header({
                 </div>
 
                 <div className="mt-2 border-t border-border/40 px-3 pt-3">
+                  {importedSources.length > 0 && (
+                    <div className="mb-3 space-y-1">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        Importadas
+                      </p>
+                      {importedSources.map((source) => {
+                        const isActive = source.id === activeDataSource.id
+                        return (
+                          <button
+                            key={source.id}
+                            type="button"
+                            onClick={() => {
+                              setImportFeedback(null)
+                              onDataSourceChange(source.id)
+                            }}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-[background-color,border-color,color] ${
+                              isActive
+                                ? 'bg-primary/10 text-foreground'
+                                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <span className="block truncate text-sm font-medium">{source.label}</span>
+                              <span className="block text-xs text-muted-foreground">
+                                {source.recordCount} termos • {formatSourceDate(source.createdAt)}
+                              </span>
+                            </div>
+                            {isActive && <Check className="h-3.5 w-3.5 text-primary" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
