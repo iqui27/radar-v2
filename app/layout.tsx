@@ -11,6 +11,15 @@ export const metadata: Metadata = {
   title: 'RADAR — Indicador de Otimização de Busca',
   description: 'Dashboard de análise de termos de busca com score RADAR para otimização SEO',
   generator: 'v0.app',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
   icons: {
     icon: [
       {
