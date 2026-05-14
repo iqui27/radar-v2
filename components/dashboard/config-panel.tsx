@@ -562,6 +562,11 @@ export function ConfigPanel({
                 </div>
               </div>
             </div>
+            <p className="mt-4 max-w-5xl rounded-2xl border border-border/55 bg-background/55 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground dark:border-white/6 dark:bg-background/25">
+              Os termos exibidos são calculados com base no comportamento e relevância do tráfego orgânico relacionado ao produto analisado.
+              Por isso, alguns termos podem aparecer como oportunidade mesmo sem serem. Os resultados devem ser interpretados como sinais
+              de relevância e apoio para análise, e não como uma indicação automática de investimento.
+            </p>
           </CardHeader>
           <CardContent className="bg-muted/18 p-0 dark:bg-transparent">
             <div className="max-h-[560px] overflow-auto bg-transparent">
